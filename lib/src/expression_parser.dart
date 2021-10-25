@@ -1,0 +1,100 @@
+import 'package:mate/src/expression.dart';
+
+/// ### Lightweight parser library to parse and calculate string expressions.
+///
+/// Parsing and calculating:
+/// ```dart
+/// final String exp = '-2 + 5 + 10 * 2';
+/// final result = ExpressionParser().calculate(exp); // result is 23
+/// ```
+///
+/// You can also check localy if expression is invalid or not:
+/// ```dart
+/// final isInvalid = ExpressionParser().isInvalidOperation(exp) // result is [false].
+/// ```
+class ExpressionParser {
+  String? _operation;
+  Expression expression = Expression();
+
+  // Pattern to catch nums in operation.
+  final _numsRegEx = RegExp(r"[0-9]");
+
+  // Patterns to catch operation signs in operation.
+  final _plusMinusRegEx = RegExp(r"[-+]"), _multDivRegEx = RegExp(r"[/*]");
+
+  /// Looks and returns if provided operation is invalid or not. (for our library)
+  bool isInvalidOperation(String operation) {
+    // A normal operation cannot be less than 3 length
+    // The minimum size opeartion example: "2+2".
+    if (operation.length < 3) return true;
+
+    // Looks if opeation starts with any invalid starter sign.
+    // Divider and multiplicater sign is invalid to start with.
+    var startsWithSign = operation.startsWith(_multDivRegEx);
+
+    // Looks if operation ends with any invalid sign.
+    // Each sign is invalid to end with.
+    final String last = operation[operation.length - 1];
+    var endsWithSign = last == '+' || last == '-' || last == '/' || last == '*';
+
+    return startsWithSign || endsWithSign;
+  }
+
+  /// Takes "string" operation, parses it and then calls "calculate" from parsed expression.
+  /// So, as a result it returns the result of given "string" operation.
+  double? calculate(String operation) {
+    if (isInvalidOperation(operation)) return null;
+
+    _parse(operation);
+    return expression.calculate();
+  }
+
+  /// Takes operation directly from input, parses it by trimming empty spaces.
+  /// Then divides operation as parts to make calculation easy and understanable.
+  void _parse(String op) {
+    // Operation without empty spaces.
+    _operation = op.replaceAll(' ', '');
+
+    // Divide operation as parts.
+    String oneTimePart = '';
+    for (var i = 0; i < _operation!.length; i++) {
+      final c = _operation![i];
+
+      final isNum = _numsRegEx.hasMatch(c);
+      final isPlusOrMinus = _plusMinusRegEx.hasMatch(c);
+      final isMultOrDiv = _multDivRegEx.hasMatch(c);
+
+      // If current one time part is empty,
+      // should add directly - without checking type of "c".
+      if (oneTimePart.isEmpty && i != _operation!.length - 1) {
+        oneTimePart += c;
+        continue;
+      }
+
+      // If "c" is number, add to current one time part.
+      // For example if operation's a random part is "123"
+      // It'll add "1" and then "2", then "3", So, by doing that
+      // We'll understand that given char as "123".
+      if (isNum) oneTimePart += c;
+
+      if (isPlusOrMinus || isMultOrDiv) {
+        // If "c" is multiplication or division sign, then should continue adding themto one time part.
+        // Because, we cannot convert a string something like "*2" or "/2" to double.
+        if (isMultOrDiv) {
+          oneTimePart += c;
+          continue;
+        }
+
+        // If "c" isn't multiplication or division sign, that means we've to complete current one time part.
+        // For example, in random case it'd be something like: "-2" or "+2".
+        expression.parts.add(oneTimePart);
+        oneTimePart = '';
+
+        oneTimePart += c;
+      }
+
+      // If we're at the end of the looping, add one time part to operation parts.
+      if (i == _operation!.length - 1) expression.parts.add(oneTimePart);
+    }
+  }
+}
