@@ -1,15 +1,11 @@
 /// Expression is a parsed variant of "string" expression.
 ///
 /// That has: [parts], [calculate], and [takeSum] operations.
-/// 
+///
 /// [calculate] uses [parts] and [takeSum] to get final result of [Expression].
 class Expression {
   // The parsed nums of (pure) expression.
   List<String> parts = [];
-
-  // The parsed [multiplication]s and [division]s of (pure) expression
-  // at the right index appended.
-  // Map<int, String> operations = {};
 
   // Calculate, loops through expression parts and adds them to themself.
   // By doing that we get final result of expression parts.
@@ -50,6 +46,7 @@ class Expression {
     final _nums = miniExp.split(RegExp(r"[/*]"));
     final _operations = miniExp.split(RegExp(r"[+-]*[0-9]"));
 
+    // TODO: Find better way to remove empty spaces.
     // Remove all blank strings from _operations.
     _operations.removeWhere((i) => i.isEmpty);
 
