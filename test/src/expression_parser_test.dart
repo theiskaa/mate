@@ -5,8 +5,8 @@ void main() {
   late ExpressionParser parser;
   late ExpressionParser parserForKeepAddingOn;
 
-  const invalidExpression = "-2*10*";
-  const expression = "-2 + 5 + 10 * 2";
+  const invalidExpression = "-2ab*10*";
+  const expression = "-2 + 5 + 10 * 2 - 2.5";
 
   setUpAll(() {
     parser = ExpressionParser();
@@ -26,13 +26,13 @@ void main() {
 
       final res = parser.calculate(expression);
 
-      expect(res, 23);
-      expect(parser.expression.parts, ["-2", "+5", "+10*2"]);
+      expect(res, 20.5);
+      expect(parser.expression.parts, ["-2", "+5", "+10*2", "-2.5"]);
     });
 
     test('calculating with enabled `keepAddingOn` should work properly', () {
       final firstRes = parserForKeepAddingOn.calculate(expression);
-      expect(firstRes, 23);
+      expect(firstRes, 20.5);
 
       final secRes = parserForKeepAddingOn.calculate(expression);
       expect(secRes, firstRes! + firstRes);

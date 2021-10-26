@@ -1,3 +1,5 @@
+import 'validators.dart';
+
 /// Expression is a parsed variant of "string" expression.
 ///
 /// That has: [parts], [calculate], and [takeSum] operations.
@@ -43,8 +45,8 @@ class Expression {
   double _calcPart(String miniExp) {
     double res = 0;
 
-    final _nums = miniExp.split(RegExp(r"[/*]"));
-    final _operations = miniExp.split(RegExp(r"[+-]*[0-9]"));
+    final _nums = miniExp.split(Validators.multDiv);
+    final _operations = miniExp.split(Validators.numsSignsPoints);
 
     // Remove all blank strings from _operations.
     _operations.removeWhere((i) => i.isEmpty);

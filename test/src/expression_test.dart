@@ -6,13 +6,13 @@ void main() {
 
   setUpAll(() {
     expression = Expression();
-    expression.parts = ["2", "-2", "2*10"];
+    expression.parts = ["2", "-2", "2*10", "-2.5"];
   });
 
   group("[Expression]", () {
     test('calculate should work properly', () {
       final res = expression.calculate();
-      expect(res, 2 + (-2) + 2 * 10);
+      expect(res, 2 + (-2) + 2 * 10 + (-2.5));
     });
 
     test('takeSum should work properly', () {
