@@ -10,8 +10,15 @@ class Validators {
   // Patterns to catch operation signs in operation.
   static final plusMinus = RegExp(r"[-+]"), multDiv = RegExp(r"[/*]");
 
+  // Checks if given char is num or not. (by nums regular expression)
   static bool isNum(String c) => nums.hasMatch(c);
+
+  // Checks if given char is plus or minus. (by plusMinus regular expression)
   static bool isPlusOrMinus(String c) => plusMinus.hasMatch(c);
+
+  // Checks if given char is multiplication sign or division sign. (by multDiv regular expression)
   static bool isMultOrDiv(String c) => multDiv.hasMatch(c);
+
+  // Check if given char is dot or comma. (by points regular expression)
   static bool isPoint(String c) => points.hasMatch(c);
 }

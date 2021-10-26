@@ -20,6 +20,7 @@ class ExpressionParser {
   /// And then if you make new operation something like: "2+5". Then result would be:
   /// Last result + current result. So, 2+8+2+5 = 10+7 = 17.
   final bool keepAddingOn;
+
   ExpressionParser({this.keepAddingOn = false});
 
   // Takes trimed (cleared by empty spaces) expression.
