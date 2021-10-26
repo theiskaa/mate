@@ -7,7 +7,7 @@ class Expression {
   // The parsed nums of (pure) expression.
   List<String> parts = [];
 
-  // Calculate, loops through expression parts and adds them to themself.
+  // Loops through expression parts and takes sum of them.
   // By doing that we get final result of expression parts.
   double? calculate() {
     double result = 0;
@@ -46,7 +46,6 @@ class Expression {
     final _nums = miniExp.split(RegExp(r"[/*]"));
     final _operations = miniExp.split(RegExp(r"[+-]*[0-9]"));
 
-    // TODO: Find better way to remove empty spaces.
     // Remove all blank strings from _operations.
     _operations.removeWhere((i) => i.isEmpty);
 
@@ -66,8 +65,11 @@ class Expression {
 
   // Takes sign and two double values.
   // Makes appropriate operation by given sign and then returns result.
-  double takeSum(String sign, double f, double s) {
-    final operationSums = {"+": f + s, "-": f - s, "*": f * s, "/": f / s};
+  double takeSum(String sign, double x, double y) {
+    final operationSums = {"+": x + y, "-": x - y, "*": x * y, "/": x / y};
     return operationSums[sign] ?? 0;
   }
+
+  /// Clears expression, by removing all parts of it.
+  void clear() => parts.clear();
 }
