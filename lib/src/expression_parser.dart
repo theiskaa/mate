@@ -86,14 +86,14 @@ class ExpressionParser {
         continue;
       }
 
-      // If "c" is number, add to current one time part.
+      // If "c" is number or point (dot/comma), add to current one time part.
       // For example if operation's a random part is "123"
       // It'll add "1" and then "2", then "3", So, by doing that
       // We'll understand that given char as "123".
       if (Validators.isNum(c) || Validators.isPoint(c)) oneTimePart += c;
 
       if (Validators.isPlusOrMinus(c) || Validators.isMultOrDiv(c)) {
-        // If "c" is multiplication or division sign, then should continue adding themto one time part.
+        // If "c" is multiplication or division sign, then should continue adding them to one time part.
         // Because, we cannot convert a string something like "*2" or "/2" to double.
         if (Validators.isMultOrDiv(c)) {
           oneTimePart += c;
