@@ -12,9 +12,9 @@ void main() {
   });
 
   group("[ExpressionParser]", () {
-    test('isInvalidOperation should work properly', () {
-      expect(parser.isInvalidOperation(invalidExpression), true);
-      expect(parser.isInvalidOperation(expression), false);
+    test('isInvalidExp should work properly', () {
+      expect(parser.isInvalidExp(invalidExpression), true);
+      expect(parser.isInvalidExp(expression), false);
     });
     test('calculate should work properly', () {
       final invalidExpResult = parser.calculate(invalidExpression);

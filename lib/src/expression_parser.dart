@@ -10,31 +10,47 @@ import 'package:mate/src/expression.dart';
 ///
 /// You can also check localy if expression is invalid or not:
 /// ```dart
-/// final isInvalid = ExpressionParser().isInvalidOperation(exp) // result is [false].
+/// final isInvalid = ExpressionParser().isInvalidExp(exp) // result is [false].
 /// ```
 class ExpressionParser {
+  /// Keeps adding current result to last result.
+  ///
+  /// For example: If you calculate "2+8" first time then you'd get 10
+  /// And then if you make new operation something like: "2+5". Then result would be:
+  /// Last result + current result. So, 2+8+2+5 = 10+7 = 17.
+  final bool keepAddingOn;
+  ExpressionParser({this.keepAddingOn = false});
+
   String? _operation;
   Expression expression = Expression();
 
-  // Pattern to catch nums in operation.
-  final _numsRegEx = RegExp(r"[0-9]");
+  // Pattern to catch nums and letters in operation.
+  final _numsRegEx = RegExp(r"[0-9]"), _lettersRegEx = RegExp(r"[A-Za-z]");
 
   // Patterns to catch operation signs in operation.
   final _plusMinusRegEx = RegExp(r"[-+]"), _multDivRegEx = RegExp(r"[/*]");
 
-  /// Looks and returns if provided operation is invalid or not. (for our library)
-  bool isInvalidOperation(String operation) {
+  /// Looks and returns if provided expression is invalid or not. (for our library)
+  bool isInvalidExp(String exp) {
     // A normal operation cannot be less than 3 length
     // The minimum size opeartion example: "2+2".
-    if (operation.length < 3) return true;
+    if (exp.length < 3) return true;
+
+    // Expression cannot include letters.
+    if (_lettersRegEx.hasMatch(exp)) return true;
+
+    // TODO: Should remove after resolving #3
+    // Current version of parser haven't support for expressions with parentheses.
+    // So, if expression contains any parentheses that means given expression is invalid.
+    if (exp.contains('(') || exp.contains(')')) return true;
 
     // Looks if opeation starts with any invalid starter sign.
     // Divider and multiplicater sign is invalid to start with.
-    var startsWithSign = operation.startsWith(_multDivRegEx);
+    var startsWithSign = exp.startsWith(_multDivRegEx);
 
     // Looks if operation ends with any invalid sign.
     // Each sign is invalid to end with.
-    final String last = operation[operation.length - 1];
+    final last = exp[exp.length - 1];
     var endsWithSign = last == '+' || last == '-' || last == '/' || last == '*';
 
     return startsWithSign || endsWithSign;
@@ -42,10 +58,12 @@ class ExpressionParser {
 
   /// Takes "string" operation, parses it and then calls "calculate" from parsed expression.
   /// So, as a result it returns the result of given "string" operation.
-  double? calculate(String operation) {
-    if (isInvalidOperation(operation)) return null;
+  double? calculate(String exp) {
+    if (isInvalidExp(exp)) return null;
 
-    _parse(operation);
+    if (!keepAddingOn) expression.clear();
+
+    _parse(exp);
     return expression.calculate();
   }
 

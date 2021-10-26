@@ -34,7 +34,7 @@ class _ExpressionParserViewState extends State<ExpressionParserView> {
     final String operation = operationController.text;
 
     // We can catch expression's validness
-    if (expressionParser.isInvalidOperation(operation)) {
+    if (expressionParser.isInvalidExp(operation)) {
       setState(() => result = 'Invalid\nOperation');
       return;
     }
