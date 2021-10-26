@@ -1,4 +1,5 @@
 import 'package:mate/src/expression.dart';
+import 'package:mate/src/validators.dart';
 
 /// ### Lightweight parser library to parse and calculate string expressions.
 ///
@@ -28,12 +29,6 @@ class ExpressionParser {
   // Used to store parts and then calculate final result.
   Expression expression = Expression();
 
-  // Patterns to catch nums and letters in operation.
-  final _numsRegEx = RegExp(r"[0-9]"), _lettersRegEx = RegExp(r"[A-Za-z]");
-
-  // Patterns to catch operation signs in operation.
-  final _plusMinusRegEx = RegExp(r"[-+]"), _multDivRegEx = RegExp(r"[/*]");
-
   /// Looks and returns if provided expression is invalid or not. (for our library)
   bool isInvalidExp(String exp) {
     // A normal operation cannot be less than 3 length
@@ -41,7 +36,7 @@ class ExpressionParser {
     if (exp.length < 3) return true;
 
     // Expression cannot include letters.
-    if (_lettersRegEx.hasMatch(exp)) return true;
+    if (Validators.letters.hasMatch(exp)) return true;
 
     // TODO: Should remove after resolving #3
     // Current version of parser haven't support for expressions with parentheses.
@@ -50,7 +45,7 @@ class ExpressionParser {
 
     // Looks if opeation starts with any invalid starter sign.
     // Divider and multiplicater sign is invalid to start with.
-    var startsWithSign = exp.startsWith(_multDivRegEx);
+    var startsWithSign = exp.startsWith(Validators.multDiv);
 
     // Looks if operation ends with any invalid sign.
     // Each sign is invalid to end with.
@@ -74,17 +69,14 @@ class ExpressionParser {
   /// Takes operation directly from input, parses it by trimming empty spaces.
   /// Then divides operation as parts to make calculation easy and understanable.
   void _parse(String op) {
-    _trimedExp = op.replaceAll(' ', '');
+    // Trim white spaces, and replace point instead of comma.
+    _trimedExp = op.replaceAll(' ', '').replaceAll(',', '.');
 
     String oneTimePart = '';
 
     // Divide operation as parts.
     for (var i = 0; i < _trimedExp!.length; i++) {
       final c = _trimedExp![i];
-
-      final isNum = _numsRegEx.hasMatch(c);
-      final isPlusOrMinus = _plusMinusRegEx.hasMatch(c);
-      final isMultOrDiv = _multDivRegEx.hasMatch(c);
 
       // If current one time part is empty,
       // should add directly - without checking type of "c".
@@ -97,12 +89,12 @@ class ExpressionParser {
       // For example if operation's a random part is "123"
       // It'll add "1" and then "2", then "3", So, by doing that
       // We'll understand that given char as "123".
-      if (isNum) oneTimePart += c;
+      if (Validators.isNum(c) || Validators.isPoint(c)) oneTimePart += c;
 
-      if (isPlusOrMinus || isMultOrDiv) {
+      if (Validators.isPlusOrMinus(c) || Validators.isMultOrDiv(c)) {
         // If "c" is multiplication or division sign, then should continue adding themto one time part.
         // Because, we cannot convert a string something like "*2" or "/2" to double.
-        if (isMultOrDiv) {
+        if (Validators.isMultOrDiv(c)) {
           oneTimePart += c;
           continue;
         }
