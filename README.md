@@ -1,8 +1,15 @@
 <p align="center">
- <img width="350" src="https://user-images.githubusercontent.com/59066341/138723337-92fc06a7-a139-4b08-a770-6c62742ba0e7.png" alt="Package Logo">
+ <img width="350" src="https://user-images.githubusercontent.com/59066341/138941465-a4354274-3976-4571-bdcd-df031d7d4761.png" alt="Package Logo">
+ <br>
+ <a href="https://pub.dev/packages/mate">
+  <img src="https://img.shields.io/pub/v/mate?color=blue" alt="pub version" />
+ </a>
+ <a href="https://github.com/theiskaa/mate/blob/main/LICENSE">
+  <img src="https://img.shields.io/badge/License-MIT-red.svg" alt="License: MIT"/>
+ </a>
 </p>
 
-## Usage 
+## Documentation
 
 Create local instance of expression parser.
 ```dart

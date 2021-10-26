@@ -1,3 +1,14 @@
+## 0.0.2 - (26/10/2021)
+- **Resolved: [#4](https://github.com/theiskaa/mate/issues/4) and [#5](https://github.com/theiskaa/mate/issues/5)**
+
+**Now, parser can understand rational numbers and calculate it.**
+
+Example:
+```dart
+final String exp = "25,58 * 96 + 44,32";
+final double? result = ExpressionParser.calculate(exp); // --> 2500
+```
+
 ## 0.0.1 - (25/10/2021)
 
 <p align="center">
@@ -9,5 +20,5 @@
 Example:
 ```dart
 final String exp = "-2 + 5 + 10 * 2";
-final double? result = expressionParser.calculate(); // result would be 23
+final double? result = expressionParser.calculate(exp); // --> 23
 ```

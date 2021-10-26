@@ -1,6 +1,6 @@
 name: mate
-description: A lightweight math library for dart
-version: 0.0.1
+description: A simple and lightweight math library, that can parse and calculate string expressions.
+version: 0.0.2
 homepage: https://github.com/theiskaa/mate
 issue_tracker: https://github.com/theiskaa/mate/issues
 documentation: https://github.com/theiskaa/mate#readme
