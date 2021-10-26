@@ -26,5 +26,12 @@ void main() {
       expect(prodSum, 20);
       expect(divSum, 5);
     });
+
+    test('clear should work properly', () {
+      expect(expression.parts.isEmpty, false);
+
+      expression.clear();
+      expect(expression.parts.isEmpty, true);
+    });
   });
 }
