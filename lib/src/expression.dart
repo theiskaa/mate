@@ -7,7 +7,7 @@ class Expression {
   // The parsed nums of (pure) expression.
   List<String> parts = [];
 
-  // Calculate, loops through expression parts and adds them to themself.
+  // Loops through expression parts and takes sum of them.
   // By doing that we get final result of expression parts.
   double? calculate() {
     double result = 0;

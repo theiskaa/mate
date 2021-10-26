@@ -21,10 +21,14 @@ class ExpressionParser {
   final bool keepAddingOn;
   ExpressionParser({this.keepAddingOn = false});
 
-  String? _operation;
+  // Takes trimed (cleared by empty spaces) expression.
+  String? _trimedExp;
+
+  // Early created main expression.
+  // Used to store parts and then calculate final result.
   Expression expression = Expression();
 
-  // Pattern to catch nums and letters in operation.
+  // Patterns to catch nums and letters in operation.
   final _numsRegEx = RegExp(r"[0-9]"), _lettersRegEx = RegExp(r"[A-Za-z]");
 
   // Patterns to catch operation signs in operation.
@@ -70,13 +74,13 @@ class ExpressionParser {
   /// Takes operation directly from input, parses it by trimming empty spaces.
   /// Then divides operation as parts to make calculation easy and understanable.
   void _parse(String op) {
-    // Operation without empty spaces.
-    _operation = op.replaceAll(' ', '');
+    _trimedExp = op.replaceAll(' ', '');
+
+    String oneTimePart = '';
 
     // Divide operation as parts.
-    String oneTimePart = '';
-    for (var i = 0; i < _operation!.length; i++) {
-      final c = _operation![i];
+    for (var i = 0; i < _trimedExp!.length; i++) {
+      final c = _trimedExp![i];
 
       final isNum = _numsRegEx.hasMatch(c);
       final isPlusOrMinus = _plusMinusRegEx.hasMatch(c);
@@ -84,7 +88,7 @@ class ExpressionParser {
 
       // If current one time part is empty,
       // should add directly - without checking type of "c".
-      if (oneTimePart.isEmpty && i != _operation!.length - 1) {
+      if (oneTimePart.isEmpty && i != _trimedExp!.length - 1) {
         oneTimePart += c;
         continue;
       }
@@ -112,7 +116,7 @@ class ExpressionParser {
       }
 
       // If we're at the end of the looping, add one time part to operation parts.
-      if (i == _operation!.length - 1) expression.parts.add(oneTimePart);
+      if (i == _trimedExp!.length - 1) expression.parts.add(oneTimePart);
     }
   }
 }
