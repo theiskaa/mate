@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:mate/mate.dart';
+import 'package:test/test.dart';
 
 void main() {
   late ExpressionParser parser;
