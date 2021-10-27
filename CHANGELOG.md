@@ -1,3 +1,8 @@
+## 0.0.3 - (27/10/2021)
+- **Resolved: [#8](https://github.com/theiskaa/mate/issues/8) Native Support**
+
+**Now, mate is independet from flutter**
+
 ## 0.0.2 - (26/10/2021)
 - **Resolved: [#4](https://github.com/theiskaa/mate/issues/4) and [#5](https://github.com/theiskaa/mate/issues/5)**
 
