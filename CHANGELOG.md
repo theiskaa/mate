@@ -1,3 +1,14 @@
+## 0.0.4 - (29/10/2021)
+- **Resolved: [#10](https://github.com/theiskaa/mate/issues/10) Percentage Calculation Support**
+
+**Now, mate can calculate [X]'s [Y] percent (from string)**
+
+Example:
+```dart
+final String exp = "10 % 2"; 
+final double? result = expressionParser.calculate(exp); // --> 0,2
+```
+
 ## 0.0.3 - (27/10/2021)
 - **Resolved: [#8](https://github.com/theiskaa/mate/issues/8) Native Support**
 
