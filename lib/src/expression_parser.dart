@@ -6,12 +6,12 @@ import 'package:mate/src/validators.dart';
 /// Parsing and calculating:
 /// ```dart
 /// final String exp = '-2 + 5 + 10 * 2';
-/// final result = ExpressionParser().calculate(exp); // result is 23
+/// final result = ExpressionParser().calculate(exp); // --> 23
 /// ```
 ///
 /// You can also check localy if expression is invalid or not:
 /// ```dart
-/// final isInvalid = ExpressionParser().isInvalidExp(exp) // result is [false].
+/// final isInvalid = ExpressionParser().isInvalidExp(exp) // --> false.
 /// ```
 class ExpressionParser {
   /// Keeps adding current result to last result.
@@ -45,8 +45,8 @@ class ExpressionParser {
     if (exp.contains('(') || exp.contains(')')) return true;
 
     // Looks if opeation starts with any invalid starter sign.
-    // Divider and multiplicater sign is invalid to start with.
-    var startsWithSign = exp.startsWith(Validators.multDiv);
+    // Division, Product and percentage signs is invalid to start with.
+    var startsWithSign = exp.startsWith(Validators.multDivPer);
 
     // Looks if operation ends with any invalid sign.
     // Each sign is invalid to end with.
@@ -70,17 +70,13 @@ class ExpressionParser {
   /// Takes operation directly from input, parses it by trimming empty spaces.
   /// Then divides operation as parts to make calculation easy and understanable.
   void _parse(String op) {
-    // Trim white spaces, and replace point instead of comma.
+    // Trim white spaces, and replace point instead of commas.
     _trimedExp = op.replaceAll(' ', '').replaceAll(',', '.');
 
     String oneTimePart = '';
-
-    // Divide operation as parts.
     for (var i = 0; i < _trimedExp!.length; i++) {
       final c = _trimedExp![i];
 
-      // If current one time part is empty,
-      // should add directly - without checking type of "c".
       if (oneTimePart.isEmpty && i != _trimedExp!.length - 1) {
         oneTimePart += c;
         continue;
@@ -92,15 +88,15 @@ class ExpressionParser {
       // We'll understand that given char as "123".
       if (Validators.isNum(c) || Validators.isPoint(c)) oneTimePart += c;
 
-      if (Validators.isPlusOrMinus(c) || Validators.isMultOrDiv(c)) {
-        // If "c" is multiplication or division sign, then should continue adding them to one time part.
+      if (Validators.isPlusOrMinus(c) || Validators.isNotNummable(c)) {
+        // If "c" is not convertable to number (isn't minus or plus), then should continue adding them to one time part.
         // Because, we cannot convert a string something like "*2" or "/2" to double.
-        if (Validators.isMultOrDiv(c)) {
+        if (Validators.isNotNummable(c)) {
           oneTimePart += c;
           continue;
         }
 
-        // If "c" isn't multiplication or division sign, that means we've to complete current one time part.
+        // If "c" is convertable to number (is minus or plus), that means we've to complete current one time part.
         // For example, in random case it'd be something like: "-2" or "+2".
         expression.parts.add(oneTimePart);
         oneTimePart = '';
