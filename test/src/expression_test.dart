@@ -6,13 +6,13 @@ void main() {
 
   setUpAll(() {
     expression = Expression();
-    expression.parts = ["2", "-2", "2*10", "-2.5"];
+    expression.parts = ["2", "-2", "2*10", "-2.5", '10%2'];
   });
 
   group("[Expression]", () {
     test('calculate should work properly', () {
       final res = expression.calculate();
-      expect(res, 2 + (-2) + 2 * 10 + (-2.5));
+      expect(res, 2 + (-2) + 2 * 10 + (-2.5) + (10/100) * 2);
     });
 
     test('takeSum should work properly', () {
@@ -20,11 +20,13 @@ void main() {
       final plusSum = expression.takeSum('+', 10, 2);
       final prodSum = expression.takeSum('*', 10, 2);
       final divSum = expression.takeSum('/', 10, 2);
+      final perSum = expression.takeSum('%', 10, 2);
 
       expect(minusSum, 8);
       expect(plusSum, 12);
       expect(prodSum, 20);
       expect(divSum, 5);
+      expect(perSum, 0.2);
     });
 
     test('clear should work properly', () {

@@ -15,11 +15,11 @@ void main() {
       expect(Validators.isPlusOrMinus('/'), false);
     });
 
-    test('isMultOrDiv should work properly', () {
-      expect(Validators.isMultOrDiv('*'), true);
-      expect(Validators.isMultOrDiv('/'), true);
-      expect(Validators.isMultOrDiv('-'), false);
-      expect(Validators.isMultOrDiv('+'), false);
+    test('isNotNummable should work properly', () {
+      expect(Validators.isNotNummable('*'), true);
+      expect(Validators.isNotNummable('/'), true);
+      expect(Validators.isNotNummable('-'), false);
+      expect(Validators.isNotNummable('+'), false);
     });
 
     test('isPoint should work properly', () {
@@ -27,6 +27,13 @@ void main() {
       expect(Validators.isPoint(','), true);
       expect(Validators.isPoint('-'), false);
       expect(Validators.isPoint('+'), false);
+    });
+
+    test('isNotCompletedPart should work properly', () {
+      expect(Validators.isNotCompletedPart('10*2'), true);
+      expect(Validators.isNotCompletedPart('10/2'), true);
+      expect(Validators.isNotCompletedPart('10%2'), true);
+      expect(Validators.isNotCompletedPart('10'), false);
     });
   });
 }

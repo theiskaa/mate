@@ -2,15 +2,15 @@ import 'validators.dart';
 
 /// Expression is a parsed variant of "string" expression.
 ///
-/// That has: [parts], [calculate], and [takeSum] operations.
+/// Where, parsed (divided as parts) string expression stored in [parts] list.
 ///
 /// [calculate] uses [parts] and [takeSum] to get final result of [Expression].
 class Expression {
-  // The parsed nums of (pure) expression.
+  // The parsed (divided as parts) expression.
   List<String> parts = [];
 
   // Loops through expression parts and takes sum of them.
-  // By doing that we get final result of expression parts.
+  // By doing that we get final result of expression.
   double? calculate() {
     double result = 0;
 
@@ -18,9 +18,7 @@ class Expression {
       final part = parts[i];
       double? c;
 
-      // If part contains division or product signs,
-      // that means we have, not-completed part expression inside parts.
-      if (part.contains('*') || part.contains('/')) {
+      if (Validators.isNotCompletedPart(part)) {
         c = _calcPart(part);
       } else {
         c = double.tryParse(part);
@@ -41,18 +39,19 @@ class Expression {
     return result;
   }
 
-  // Takes mini part expression from actual expression parts, and returns result of it.
+  // Takes not completed part expression from current expression parts,
+  // Then re-parses and re-calculates it, and then returns result.
   double _calcPart(String miniExp) {
     double res = 0;
 
-    final _nums = miniExp.split(Validators.multDiv);
+    final _nums = miniExp.split(Validators.multDivPer);
     final _operations = miniExp.split(Validators.numsSignsPoints);
 
     // Remove all blank strings from _operations.
     _operations.removeWhere((i) => i.isEmpty);
 
     for (var i = 0; i < _nums.length; i++) {
-      double c = double.tryParse(_nums[i])!;
+      double? c = double.tryParse(_nums[i])!;
 
       if (i == 0) {
         res = c;
@@ -68,7 +67,14 @@ class Expression {
   // Takes sign and two double values.
   // Makes appropriate operation by given sign and then returns result.
   double takeSum(String sign, double x, double y) {
-    final operationSums = {"+": x + y, "-": x - y, "*": x * y, "/": x / y};
+    final operationSums = {
+      "+": x + y,
+      "-": x - y,
+      "*": x * y,
+      "/": x / y,
+      "%": (x / 100) * y
+    };
+
     return operationSums[sign] ?? 0;
   }
 
