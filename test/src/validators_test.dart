@@ -28,5 +28,12 @@ void main() {
       expect(Validators.isPoint('-'), false);
       expect(Validators.isPoint('+'), false);
     });
+
+    test('isNotCompletedPart should work properly', () {
+      expect(Validators.isNotCompletedPart('10*2'), true);
+      expect(Validators.isNotCompletedPart('10/2'), true);
+      expect(Validators.isNotCompletedPart('10%2'), true);
+      expect(Validators.isNotCompletedPart('10'), false);
+    });
   });
 }

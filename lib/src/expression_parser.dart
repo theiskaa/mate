@@ -101,7 +101,7 @@ class ExpressionParser {
         expression.parts.add(oneTimePart);
         oneTimePart = '';
 
-        oneTimePart += c;
+        if (c != '+') oneTimePart += c;
       }
 
       // If we're at the end of the looping, add one time part to operation parts.
