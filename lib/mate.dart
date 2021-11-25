@@ -5,6 +5,17 @@ import 'src/expression.dart';
 import 'src/tokens.dart';
 import 'src/validators.dart';
 
+/// Mate is main class of library.
+/// 
+/// It has already created, [Lexer] and [Expression].
+/// And two functions, [calculate] and [isInvalidExp]. 
+///
+/// [calculate] is the main function that takes string expression, 
+/// parses it (converts to tokens) by [Lexer], and then by using [Expression],
+/// calculates final result.
+/// 
+/// [calculate] function automatically checks given string expression's validness.
+/// if it's invalid, then function will return `null`, otherwise as normal a double number value.
 class Mate {
   /// Early created main lexer instance of mate.
   /// Used to convert(parse) string expression to tokens list.
@@ -27,12 +38,12 @@ class Mate {
 
   /// Looks and returns if provided expression is invalid or not. (for our library)
   bool isInvalidExp(List<Token> tokens) {
+    // Token's list length can't be even number, it must to be odd.
     if (tokens.length % 2 == 0) return true;
 
     // Looks if operation starts or ends with any invalid starter/ender sign.
     // Division, Product and percentage signs is invalid to start or end with.
     final startsWithSign = !Validators.isNummable(tokens[0].value.toString());
-
     final endsWithSign = !Validators.isNumOrPoint(
       tokens[tokens.length - 1].value.toString(),
     );
