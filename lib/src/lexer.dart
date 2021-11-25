@@ -2,7 +2,7 @@ import 'package:mate/src/tokens.dart';
 
 import 'validators.dart';
 
-/// #### Lexer is a simple expression scanner and converter.
+/// #### Lexer is a simple expression parser.
 ///
 /// It takes string expression, scans it and then generates tokens from expression.
 /// For example:
@@ -65,7 +65,7 @@ class Lexer {
       if (!Validators.isNum(c) && !Validators.isPoint(c)) {
         // If c is not convert able sign (+ or -), we should keep adding on `oneTime`
         // 2+2*5 --> 2, (2*5) is full oneTime that it's contains not convert able number.
-        if (Validators.isNotNummable(c)) {
+        if (!Validators.isNummable(c) || i == 0) {
           oneTime += c;
           continue;
         }

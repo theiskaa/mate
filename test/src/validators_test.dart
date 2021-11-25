@@ -15,11 +15,11 @@ void main() {
       expect(Validators.isPlusOrMinus('/'), false);
     });
 
-    test('isNotNummable should work properly', () {
-      expect(Validators.isNotNummable('*'), true);
-      expect(Validators.isNotNummable('/'), true);
-      expect(Validators.isNotNummable('-'), false);
-      expect(Validators.isNotNummable('+'), false);
+    test('isNummable should work properly', () {
+      expect(Validators.isNummable('*'), false);
+      expect(Validators.isNummable('/'), false);
+      expect(Validators.isNummable('-'), true);
+      expect(Validators.isNummable('+'), true);
     });
 
     test('isPoint should work properly', () {
@@ -34,6 +34,13 @@ void main() {
       expect(Validators.isNotCompletedPart('10/2'), true);
       expect(Validators.isNotCompletedPart('10%2'), true);
       expect(Validators.isNotCompletedPart('10'), false);
+    });
+
+    test('isNumOrPoint should work properly', () {
+      expect(Validators.isNumOrPoint('0.5'), true);
+      expect(Validators.isNumOrPoint('5'), true);
+      expect(Validators.isNumOrPoint('-'), false);
+      expect(Validators.isNumOrPoint('+'), false);
     });
   });
 }

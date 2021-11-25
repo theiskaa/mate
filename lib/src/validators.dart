@@ -15,7 +15,7 @@ class Validators {
   static bool isPlusOrMinus(String c) => plusMinus.hasMatch(c);
 
   // Checks if given char is multiplication, division or percentage sign.
-  static bool isNotNummable(String c) => multDivPer.hasMatch(c);
+  static bool isNummable(String c) => !multDivPer.hasMatch(c);
 
   // Checks if given char is dot or comma.
   static bool isPoint(String c) => points.hasMatch(c);
@@ -24,4 +24,7 @@ class Validators {
   static bool isNotCompletedPart(String p) {
     return p.contains('*') || p.contains('/') || p.contains('%');
   }
+
+  // Checks if given char is num or not.
+  static bool isNumOrPoint(String c) => nums.hasMatch(c) || points.hasMatch(c);
 }

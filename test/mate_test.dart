@@ -1,44 +1,41 @@
+import 'package:mate/mate.dart';
+import 'package:mate/src/lexer.dart';
 import 'package:test/test.dart';
 
 void main() {
-  // late Mate mate;
-  // late Mate mateForKeepAddingOn;
+  late Lexer lexer;
+  late Mate mate;
 
-  // const invalidExpression = "-2ab*10*";
-  // const expression = "-2 + 5 + 10 * 2 - 2.5 + 50 % 2";
-
-  // setUpAll(() {
-  //   mate = Mate();
-  //   mateForKeepAddingOn = Mate(keepAddingOn: true);
-  // });
+  setUpAll(() {
+    lexer = Lexer();
+    mate = Mate();
+  });
 
   group("[Mate]", () {
-    // test('isInvalidExp should work properly', () {
-    //   expect(mate.isInvalidExp(invalidExpression), true);
-    //   expect(mate.isInvalidExp(expression), false);
-    // });
+    test('isInvalidExp should work properly', () {
+      final tests = {
+        "-2ab*10*": true,
+        "-2 + 5 + 10 * 2 - 2.5 + 50 % 2": false,
+        "2+2": false,
+      };
+      tests.forEach((exp, expected) {
+        final tokens = lexer.parse(exp);
 
-    // test('calculate should work properly', () {
-    //   final invalidExpResult = parser.calculate(invalidExpression);
+        expect(mate.isInvalidExp(tokens), expected);
+      });
+    });
 
-    //   expect(invalidExpResult, null);
-    //   expect(parser.expression.parts, []);
+    test('calculate should work properly', () {
+      final tests = {
+        "-2ab*10*": null,
+        "-2 + 5 + 10 * 2 - 2.5 + 50 % 2": 21.5,
+        "2+2*5": 12,
+      };
 
-    //   final res = parser.calculate(expression);
-
-    //   expect(res, 21.5);
-    //   expect(parser.expression.parts, ["-2", "5", "10*2", "-2.5", "50%2"]);
-    // });
-
-    // test('calculating with enabled `keepAddingOn` should work properly', () {
-    //   final firstRes = parserForKeepAddingOn.calculate(expression);
-    //   expect(firstRes, 21.5);
-
-    //   final secRes = parserForKeepAddingOn.calculate(expression);
-    //   expect(secRes, firstRes! + firstRes);
-
-    //   final thirdRes = parserForKeepAddingOn.calculate(expression);
-    //   expect(thirdRes, secRes! + firstRes);
-    // });
+      tests.forEach((exp, expected) {
+        final got = mate.calculate(exp);
+        expect(got, expected);
+      });
+    });
   });
 }
