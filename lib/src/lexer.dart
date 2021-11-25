@@ -16,7 +16,7 @@ import 'validators.dart';
 /// ```
 ///
 /// Here is an another example:
-/// 
+///
 /// if expression is `"2+2*5"` then [Lexer]'s output will look something like:
 /// ```dart
 /// [
@@ -33,7 +33,7 @@ import 'validators.dart';
 /// ]
 /// ```
 /// We have `subExpression` typed token in output, because we should re-calculate it and then
-/// take sum of result and number. So when we calculate subExpression, we'd get `10` right?  
+/// take sum of result and number. So when we calculate subExpression, we'd get `10` right?
 /// So, final equation would be: `2 + 10` = `12`.
 class Lexer {
   // Parse, is the main parsing function of lexer, it usually used to parse
@@ -112,19 +112,17 @@ class Lexer {
     for (var i = 0; i < subExp.length; i++) {
       final c = subExp[i];
 
-      // Should keep store/cache numbers in onTime, to get full number.
-      // So, if sub expression is "22*5", to get full 22 we should store 2 and then add 2 again to the oneTime.
-      if (Validators.isNum(c) || Validators.isPoint(c)) {
-        oneTime += c;
-        if (i == subExp.length - 1) addOneTime();
-        continue;
-      }
-
       // Adds any sign as independent token.
       if (!Validators.isNum(c) && !Validators.isPoint(c)) {
         addOneTime();
         tokens.add(Token(type: c.toType!));
       }
+
+      // Should keep store/cache numbers in onTime, to get full number.
+      // So, if sub expression is "22*5", to get full 22 we should store 2 and then add 2 again to the oneTime.
+      if (Validators.isNum(c) || Validators.isPoint(c)) oneTime += c;
+
+      if (i == subExp.length - 1) addOneTime();
     }
 
     return tokens;

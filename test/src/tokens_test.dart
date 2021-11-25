@@ -54,6 +54,21 @@ void main() {
       tests.forEach((key, expected) => expect(key.isSign, expected));
     });
 
+    test('isNumber should expect values correctly', () {
+      final tests = {
+        Type.addition: false,
+        Type.number: true,
+        Type.subExpression: false,
+      };
+
+      tests.forEach((key, expected) => expect(key.isNumber, expected));
+    });
+
+    test('isSubExpression should expect values correctly', () {
+      final tests = {Type.number: false, Type.subExpression: true};
+      tests.forEach((key, expected) => expect(key.isSubExpression, expected));
+    });
+
     test('value should expect right value from type', () {
       final tests = {
         Type.addition: "+",

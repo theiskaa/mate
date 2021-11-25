@@ -36,7 +36,9 @@ class Token {
 
   // Variable tokens.
   static double number(double n) => n;
-  static List<Token> subExpression(String exp) => Lexer().parseSubExpression(exp);
+  static List<Token> subExpression(String exp) {
+    return Lexer().parseSubExpression(exp);
+  }
 }
 
 // Shortcut utilities for token's type.
@@ -54,6 +56,12 @@ extension TypeUtils on Type {
 
     return _signs.contains(this);
   }
+
+  // Looks if type is sub expression token type.
+  bool get isSubExpression => this == Type.subExpression;
+
+  // Looks if type is number token type.
+  bool get isNumber => this == Type.number;
 
   // Generates token value from token type.
   dynamic value([dynamic value]) {

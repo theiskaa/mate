@@ -10,12 +10,12 @@ void main() {
   group('Lexer', () {
     test('should parse expression properly', () {
       final tests = {
-        "2+2": [
-          Token(type: Type.number, value: Token.number(2)),
+        "2.5 + 2.5": [
+          Token(type: Type.number, value: Token.number(2.5)),
           Token(type: Type.addition),
-          Token(type: Type.number, value: Token.number(2)),
+          Token(type: Type.number, value: Token.number(2.5)),
         ],
-        "2+2*5/2": [
+        "2 + 2 * 5 / 2": [
           Token(type: Type.number, value: Token.number(2)),
           Token(type: Type.addition),
           Token(
@@ -101,6 +101,13 @@ void main() {
           Token(type: Type.number, value: Token.number(2)),
           Token(type: Type.percentage),
           Token(type: Type.number, value: Token.number(2)),
+        ],
+        "10%2+0.8": [
+          Token(type: Type.number, value: Token.number(10)),
+          Token(type: Type.percentage),
+          Token(type: Type.number, value: Token.number(2)),
+          Token(type: Type.addition),
+          Token(type: Type.number, value: Token.number(0.8)),
         ],
       };
 

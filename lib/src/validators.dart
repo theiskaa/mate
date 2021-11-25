@@ -2,9 +2,6 @@ class Validators {
   // Pattern to catch points (commas and dots).
   static final points = RegExp(r"[,.]");
 
-  // Pattern to catch points, converable signs and numbers.
-  static final numsSignsPoints = RegExp(r"[,.]*[+-]*[0-9]");
-
   // Patterns to catch nums and letters in operation.
   static final nums = RegExp(r"[0-9]"), letters = RegExp(r"[A-Za-z]");
 
