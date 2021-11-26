@@ -1,85 +1,28 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-
 import 'package:mate/mate.dart';
 
-void main() => runApp(const App());
+/*
+  This file is just a simple implementation example of mate.
 
-class App extends StatelessWidget {
-  const App({Key? key}) : super(key: key);
+  See official documentation/explanation of working style of mate. - [https://github.com/theiskaa/mate#readme]  
+  And here is UI/Flutter implementation of mate - [https://github.com/theiskaa/mate/blob/main/example/app.dart]
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData.dark(),
-      home: const ExpressionParserView(),
-    );
-  }
-}
+*/
 
-class ExpressionParserView extends StatefulWidget {
-  const ExpressionParserView({Key? key}) : super(key: key);
+void main() {
+  // Create new mate instance.
+  final Mate mate = Mate();
 
-  @override
-  _ExpressionParserViewState createState() => _ExpressionParserViewState();
-}
+  const expressions = [
+    '2+2', // 4
+    '-2 + 5 + 10 * 2', // 23
+    '10 % 2 + 0.8 + 19 / 2 - 0.5', // 10
+    "*2abc-10/%" // null (invalid),
+  ];
 
-class _ExpressionParserViewState extends State<ExpressionParserView> {
-  final ExpressionParser expressionParser = ExpressionParser();
-  final operationController = TextEditingController();
+  for (var expression in expressions) {
+    // use [calculate] function, to parse, and calculate expression.
+    final result = mate.calculate(expression);
 
-  String? result = '0';
-
-  void calculate() {
-    final String operation = operationController.text;
-
-    // We can catch expression's validness like:
-    if (expressionParser.isInvalidExp(operation)) {
-      setState(() => result = 'Invalid\nOperation');
-      return;
-    }
-
-    // Calulcate operation if it's valid.
-    final res = expressionParser.calculate(operation);
-
-    setState(() => result = res.toString());
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mate')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              result.toString().replaceAll('.0', ''),
-              style: const TextStyle(
-                fontSize: 50,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 50),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                controller: operationController,
-                decoration: const InputDecoration(
-                  hintText: 'Operation',
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: calculate,
-              child: const Text('Calculate'),
-            )
-          ],
-        ),
-      ),
-    );
+    print(result);
   }
 }

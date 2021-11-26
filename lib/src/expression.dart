@@ -1,73 +1,44 @@
-import 'validators.dart';
+import 'package:mate/src/tokens.dart';
 
 /// Expression is a parsed variant of "string" expression.
 ///
 /// Where, parsed (divided as parts) string expression stored in [parts] list.
 ///
-/// [calculate] uses [parts] and [takeSum] to get final result of [Expression].
+/// [calculate] uses [parts] and [takeRes] to get final result of [Expression].
 class Expression {
-  // The parsed (divided as parts) expression.
-  List<String> parts = [];
+  // The parsed (divided as parts/tokens) expression list.
+  List<Token> parts = [];
+
+  /// Clears expression, by removing all parts of it.
+  void clear() => parts.clear();
 
   // Loops through expression parts and takes sum of them.
   // By doing that we get final result of expression.
-  double? calculate() {
+  double? calculate([List<Token>? tokens]) {
     double result = 0;
 
-    for (var i = 0; i < parts.length; i++) {
-      final part = parts[i];
-      double? c;
+    final _parts = tokens ?? parts;
 
-      if (Validators.isNotCompletedPart(part)) {
-        c = _calcPart(part);
-      } else {
-        c = double.tryParse(part);
-      }
+    // If length of parts is one, that means it has only sub expression.
+    // So, we could directly calculate sub expression without looping.
+    if (_parts.length == 1) return calculate(_parts[0].value);
 
-      // If "c" is null, that means something went wrong on calculating.
-      // Then, we return null, which means operation is invalid.
-      if (c == null) return null;
+    for (var i = 0; i <= _parts.length; i += 2) {
+      final part = _parts[i];
 
-      if (i == 0) {
-        result = c;
-        continue;
-      }
+      final y = part.type.isNumber ? part.value : calculate(part.value);
+      final sign = i == 0 ? Token.addition : _parts[i - 1].value;
 
-      result = c + result;
+      result = takeRes(sign, result, y);
     }
 
     return result;
   }
 
-  // Takes not completed part expression from current expression parts,
-  // Then re-parses and re-calculates it, and then returns result.
-  double _calcPart(String miniExp) {
-    double res = 0;
-
-    final _nums = miniExp.split(Validators.multDivPer);
-    final _operations = miniExp.split(Validators.numsSignsPoints);
-
-    // Remove all blank strings from _operations.
-    _operations.removeWhere((i) => i.isEmpty);
-
-    for (var i = 0; i < _nums.length; i++) {
-      double? c = double.tryParse(_nums[i])!;
-
-      if (i == 0) {
-        res = c;
-        continue;
-      }
-
-      res = takeSum(_operations[i - 1], res, c);
-    }
-
-    return res;
-  }
-
   // Takes sign and two double values.
   // Makes appropriate operation by given sign and then returns result.
-  double takeSum(String sign, double x, double y) {
-    final operationSums = {
+  double takeRes(String sign, double x, double y) {
+    final operations = {
       "+": x + y,
       "-": x - y,
       "*": x * y,
@@ -75,9 +46,6 @@ class Expression {
       "%": (x / 100) * y
     };
 
-    return operationSums[sign] ?? 0;
+    return operations[sign] ?? 0;
   }
-
-  /// Clears expression, by removing all parts of it.
-  void clear() => parts.clear();
 }

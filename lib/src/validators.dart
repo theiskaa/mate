@@ -2,9 +2,6 @@ class Validators {
   // Pattern to catch points (commas and dots).
   static final points = RegExp(r"[,.]");
 
-  // Pattern to catch points, converable signs and numbers.
-  static final numsSignsPoints = RegExp(r"[,.]*[+-]*[0-9]");
-
   // Patterns to catch nums and letters in operation.
   static final nums = RegExp(r"[0-9]"), letters = RegExp(r"[A-Za-z]");
 
@@ -18,7 +15,7 @@ class Validators {
   static bool isPlusOrMinus(String c) => plusMinus.hasMatch(c);
 
   // Checks if given char is multiplication, division or percentage sign.
-  static bool isNotNummable(String c) => multDivPer.hasMatch(c);
+  static bool isNummable(String c) => !multDivPer.hasMatch(c);
 
   // Checks if given char is dot or comma.
   static bool isPoint(String c) => points.hasMatch(c);
@@ -27,4 +24,7 @@ class Validators {
   static bool isNotCompletedPart(String p) {
     return p.contains('*') || p.contains('/') || p.contains('%');
   }
+
+  // Checks if given char is num or not.
+  static bool isNumOrPoint(String c) => nums.hasMatch(c) || points.hasMatch(c);
 }

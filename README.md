@@ -11,40 +11,48 @@
 
 ## Documentation
 
-Create local instance of expression parser.
+Create new mate instance.
 ```dart
-final ExpressionParser expressionParser = ExpressionParser();
+final Mate mate = Mate();
 ```
 
 Then you can calculate your "string" expression like:
 ```dart
-final String exp = "-2 + 5 + 10 * 2";
-final double? result = expressionParser.calculate(exp); // --> 23
+final String expression = "-2 + 5 + 10 * 2";
+final double? result = mate.calculate(expression); // --> 23
 ```
 
 When we call calculate, it checks the validness of expression automatically.
 So, we needn't to do some manual checking here. (If expression is invalid, then result would be null)
 
-But in anyways, if you wanna check the validness of expression manually, you can do it, like:
-```dart
-final bool isInvalid = expressionParser.isInvalidExp(exp) // --> false
-```
+> **Check [official example](https://github.com/theiskaa/mate/blob/main/example/main.dart) of Mate**
 
-Also, you can enable, taking the sum of the last result and current by setting `keepAddingOn` to `true`.
-
-So, when you enable it, parser allways store your last expression parts. By doing that it can take sum of the last result you got, and the current one.
-
-For example: 
-you calculate `"8+2"` and got `10` as result. Parser keeps `["8", "+2"]` as parts of expression. 
-So, when you make operation after that one, e.g: `"2+3"`, then parts of expression would be: `["8", "+2", "2", "+3"]` So, the final result would be `(8+2) + (2+3) = 15`.
-
-> **Check [official example](https://github.com/theiskaa/mate/blob/main/example/main.dart) to see the UI implementation of Mate**
+> **Check [official UI implementation example](https://github.com/theiskaa/mate/blob/main/example/app.dart) of Mate**
 
 
 ## Explanation
-Parser divides string expression as parts (Stores them in custom Expression class), then loops through the parts and takes sum of them.
-If string expression is `"2+5"` then parts would be: `["2", "+5"]`. So the sum of parts would be `2+(+5)` --> `7`.
+Mate's **parsing**/**lexing** algorithm looks like an **interpreter**. <br>
+It has early created constant chars, and uses **lexer**/**parser** to convert string expression to tokens list.
 
-Let's see with default example: `"-2 + 5 + 10 * 2"`.
-In this case, parts would be: `["-2", "+5", "10*2"]`. We got `"10*2"` at the end of the part, because of operation priority.
-So, the final result would be: `-2+(+5)+(10*2)` --> `3+20` --> `23`.
+**Token** is a special object model, that has **type** and **value**. It is a char's, library implementation variant.
+
+So as you guess, `Mate`'s `calculate` function, takes string expression, parses it by using `Lexer`,
+and by using lexer's parsing result, it calculates final result.
+However, we pass lexer's parsing result to `Expression`'s parts, and then we call calculate function from `Expression` to get final result.
+#### Let's see an example:
+Our expression is `"2 + 2 * 5"`, that expression would be passed to `Mate`'s `calculate` function.
+Then, it'd call `Lexer`'s `parse` function to convert expression to `List<Token>`.
+
+**Our expressions, parsed variant would look like:**
+```dart
+[
+  Token(type: Type.number, value: Token.number(2)),
+  Token(type: Type.addition),
+  Token(type: Type.subExpression, value: [
+    Token(type: Type.number, value: Token.number(2)),
+    Token(type: Type.multiplication),
+    Token(type: Type.number, value: Token.number(5)),
+  ])
+]
+```
+Then, by using that result, `Expression` can calculate final result. --> `2 + (2*5) = 2 + 10 = 12`.
