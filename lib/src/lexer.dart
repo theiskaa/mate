@@ -47,6 +47,7 @@ class Lexer {
     expression = expression.replaceAll(' ', '').replaceAll(',', '.');
 
     String oneTime = '';
+    int nesting = 0;
 
     // Adds stored and not empty oneTime (usually numbers and sub expressions) to tokens list.
     finish() {
@@ -62,11 +63,15 @@ class Lexer {
     for (var i = 0; i < expression.length; i++) {
       final c = expression[i];
 
+      nesting = _setNesting(c, nesting);
+
+      final isInParentheses = nesting > 0 || Validators.isClosingPr(c);
       if (!Validators.isNum(c) && !Validators.isPoint(c)) {
         // If c is not convert able sign (+ or -), we should keep adding on `oneTime`
         // 2+2*5 --> 2, (2*5) is full oneTime that it's contains not convert able number.
-        if (!Validators.isNummable(c) || i == 0) {
+        if (!Validators.isNummable(c) || i == 0 || isInParentheses) {
           oneTime += c;
+          if (i == expression.length - 1) finish();
           continue;
         }
 
@@ -97,6 +102,7 @@ class Lexer {
     var tokens = <Token>[];
 
     String oneTime = '';
+    int nesting = 0;
 
     // Adds stored and not empty oneTime (usually numbers) to tokens list.
     addOneTime() {
@@ -109,22 +115,58 @@ class Lexer {
       oneTime = '';
     }
 
+    // Should remove parentheses, if expression just wrapped with parentheses.
+    // And not contains any nested sub expression into it.
+    if (subExp.contains(Validators.parentheses)) {
+      final int _nesting = _countNesting(subExp);
+      if (_nesting == 1) subExp = subExp.replaceAll(Validators.parentheses, '');
+    }
+
     for (var i = 0; i < subExp.length; i++) {
       final c = subExp[i];
 
+      nesting = _setNesting(c, nesting);
+
+      final isParentheses = Validators.isPr(c);
+      final isNum = Validators.isNum(c) || Validators.isPoint(c);
+
       // Adds any sign as independent token.
-      if (!Validators.isNum(c) && !Validators.isPoint(c)) {
+      if (!isNum && !isParentheses && nesting == 0) {
         addOneTime();
         tokens.add(Token(type: c.toType!));
       }
 
       // Should keep store/cache numbers in onTime, to get full number.
       // So, if sub expression is "22*5", to get full 22 we should store 2 and then add 2 again to the oneTime.
-      if (Validators.isNum(c) || Validators.isPoint(c)) oneTime += c;
+      if (isNum || isParentheses || nesting > 0) oneTime += c;
 
       if (i == subExp.length - 1) addOneTime();
     }
 
     return tokens;
+  }
+
+  // Sets expression's nesting level.
+  int _setNesting(String c, nesting) {
+    if (Validators.isOpeningPr(c)) nesting++;
+    if (Validators.isClosingPr(c)) nesting--;
+
+    return nesting;
+  }
+
+  // Counts expression's nesting level.
+  int _countNesting(String exp) {
+    int nesting = 0;
+
+    // Should return nothing, if expression isn't wrapped with parentheses.
+    var isInPr =
+        !Validators.isPr(exp[0]) || !Validators.isPr(exp[exp.length - 1]);
+    if (isInPr) return 0;
+
+    for (var i = 0; i < exp.length; i++) {
+      if (Validators.isOpeningPr(exp[i])) nesting++;
+    }
+
+    return nesting;
   }
 }

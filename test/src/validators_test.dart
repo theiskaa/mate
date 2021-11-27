@@ -42,5 +42,22 @@ void main() {
       expect(Validators.isNumOrPoint('-'), false);
       expect(Validators.isNumOrPoint('+'), false);
     });
+
+    test('isPr should work properly', () {
+      expect(Validators.isPr('('), true);
+      expect(Validators.isPr(')'), true);
+      expect(Validators.isPr('-'), false);
+      expect(Validators.isPr('+'), false);
+    });
+
+    test('isOpeningPr should work properly', () {
+      expect(Validators.isOpeningPr('('), true);
+      expect(Validators.isOpeningPr(')'), false);
+    });
+
+    test('isClosingPr should work properly', () {
+      expect(Validators.isClosingPr(')'), true);
+      expect(Validators.isClosingPr('('), false);
+    });
   });
 }

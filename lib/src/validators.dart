@@ -8,6 +8,9 @@ class Validators {
   // Patterns to catch operation signs in expression.
   static final plusMinus = RegExp(r"[-+]"), multDivPer = RegExp(r"[/*%]");
 
+  // Pattern to catch parentheses.
+  static final parentheses = RegExp(r"[()]");
+
   // Checks if given char is num or not.
   static bool isNum(String c) => nums.hasMatch(c);
 
@@ -22,9 +25,16 @@ class Validators {
 
   // Checks if given part is completed or not.
   static bool isNotCompletedPart(String p) {
-    return p.contains('*') || p.contains('/') || p.contains('%');
+    return multDivPer.hasMatch(p) || p.contains('+') || isPr(p);
   }
 
   // Checks if given char is num or not.
   static bool isNumOrPoint(String c) => nums.hasMatch(c) || points.hasMatch(c);
+
+  // Checks if given char is parentheses or not.
+  static bool isPr(String c) => parentheses.hasMatch(c);
+
+  static bool isOpeningPr(String c) => c == '(';
+
+  static bool isClosingPr(String c) => c == ')';
 }

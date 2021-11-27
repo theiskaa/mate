@@ -3,18 +3,21 @@ import 'package:mate/src/validators.dart';
 
 // All token types.
 enum Type {
+  dot, // point/comma
+
   addition,
   subtraction,
   multiplication,
   division,
   percentage,
 
-  dot,
+  leftPR, // Left parentheses
+  rightPR, // Left parentheses
 
   number,
   subExpression,
 
-  undefined
+  undefined // alternative to null.
 }
 
 // Token is a main object class that'd used as lexer's tokens.
@@ -31,8 +34,11 @@ class Token {
   static const dot = '.';
 
   // Operation signs.
-  static const addition = "+", subtraction = '-';
+  static const addition = '+', subtraction = '-';
   static const multiplication = '*', division = '/', percentage = '%';
+
+  // Parentheses signs.
+  static const leftPR = '(', rightPR = ')';
 
   // Variable tokens.
   static double number(double n) => n;
@@ -52,6 +58,8 @@ extension TypeUtils on Type {
       Type.division,
       Type.percentage,
       Type.dot,
+      Type.leftPR,
+      Type.rightPR,
     ];
 
     return _signs.contains(this);
@@ -62,6 +70,9 @@ extension TypeUtils on Type {
 
   // Looks if type is number token type.
   bool get isNumber => this == Type.number;
+
+  // Looks if type is parentheses sign token type.
+  bool get isParenthesesSign => this == Type.leftPR || this == Type.rightPR;
 
   // Generates token value from token type.
   dynamic value([dynamic value]) {
@@ -78,6 +89,10 @@ extension TypeUtils on Type {
         return Token.percentage;
       case Type.dot:
         return Token.dot;
+      case Type.leftPR:
+        return Token.leftPR;
+      case Type.rightPR:
+        return Token.rightPR;
       case Type.number:
         return Token.number(double.tryParse(value)!);
       case Type.subExpression:
@@ -98,6 +113,8 @@ extension StringUtils on String {
       Token.division: Type.division,
       Token.percentage: Type.percentage,
       Token.dot: Type.dot,
+      Token.leftPR: Type.leftPR,
+      Token.rightPR: Type.rightPR,
     };
 
     if (length == 1 && !Validators.isNum(this)) {
