@@ -9,6 +9,11 @@
  </a>
 </p>
 
+## Attention!
+This branch is a **old-structured** variant of mate. However, mate's parsing and calculating structure/algorithm was changed completly with this issue **[Re-structure parsing algorithm #13](https://github.com/theiskaa/mate/issues/13).**
+
+**To see completely new-structued version of mate, refer to default and release branch - [main](https://github.com/theiskaa/mate)**
+
 ## Documentation
 
 Create local instance of expression parser.
