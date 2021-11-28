@@ -4,11 +4,12 @@ import 'package:test/test.dart';
 
 void main() {
   late Lexer lexer;
-  late Mate mate;
+  late Mate mate, debugModeMate;
 
   setUpAll(() {
     lexer = Lexer();
     mate = Mate();
+    debugModeMate = Mate(debugMode: true);
   });
 
   group("[Mate]", () {
@@ -20,7 +21,6 @@ void main() {
       };
       tests.forEach((exp, expected) {
         final tokens = lexer.parse(exp);
-
         expect(mate.isInvalidExp(tokens), expected);
       });
     });
@@ -34,6 +34,15 @@ void main() {
 
       tests.forEach((exp, expected) {
         final got = mate.calculate(exp);
+        expect(got, expected);
+      });
+    });
+
+    test('[DebugMode enabled] calculate should work properly', () {
+      final tests = {"2*2": 4};
+
+      tests.forEach((exp, expected) {
+        final got = debugModeMate.calculate(exp);
         expect(got, expected);
       });
     });
