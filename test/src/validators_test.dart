@@ -59,5 +59,17 @@ void main() {
       expect(Validators.isClosingPr(')'), true);
       expect(Validators.isClosingPr('('), false);
     });
+
+    test('nestedCorrectly should work properly', () {
+      final tests = {
+        '(20+5) * (20/4)': true,
+        '(20*5+1)': true,
+      };
+
+      tests.forEach((exp, expected) {
+        final got = Validators.nestedCorrectly(exp);
+        expect(got, expected);
+      });
+    });
   });
 }

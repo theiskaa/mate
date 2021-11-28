@@ -160,20 +160,16 @@ class Lexer {
   bool _isWrappedWithParentheses(String exp) {
     if (!exp.contains(Validators.parentheses)) return false;
 
-    final isW = Validators.isPr(exp[0]) && Validators.isPr(exp[exp.length - 1]);
+    // Sub function to check if first and last char of expression is parentheses or not.
+    bool isW(e) => Validators.isPr(e[0]) && Validators.isPr(e[e.length - 1]);
 
-    int nesting = 0;
-    for (var i = 0; i < exp.length; i++) {
-      if (Validators.isOpeningPr(exp[i])) nesting++;
-    }
+    if (!isW(exp)) return false;
 
-    /* TODO: Has problem on seperated parentheses expressions.
-    
-    We should return is wrapped to false when expression looks like:
-    (x-y) * (x+y) - Because, this expression wasn't wrapped with parentheses.
+    // Re-check with removed parentheses variant.
+    final tExp = exp.substring(1, exp.length - 1);
+    if (isW(tExp)) return true;
 
-    */
-
-    return isW && nesting > 0;
+    // Check expression's nesting correctness.
+    return Validators.nestedCorrectly(tExp);
   }
 }

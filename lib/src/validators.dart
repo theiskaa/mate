@@ -34,7 +34,31 @@ class Validators {
   // Checks if given char is parentheses or not.
   static bool isPr(String c) => parentheses.hasMatch(c);
 
+  // Checks if given char is opening parentheses sign or not.
   static bool isOpeningPr(String c) => c == '(';
 
+  // Checks if given char is closing parentheses sign or not.
   static bool isClosingPr(String c) => c == ')';
+
+  // Checks if given expression was nested correctly.
+  // `((20/4) * (20/5))` is nested correctly, but ((20/4) * (20/5) isn't.
+  static bool nestedCorrectly(String exp) {
+    if (!exp.contains(parentheses)) return true;
+
+    String listed = '';
+    int openingPr = 0, closingPr = 0;
+
+    for (var i = 0; i < exp.length; i++) {
+      final c = exp[i];
+
+      if (isPr(c)) listed += c;
+      if (isOpeningPr(c)) openingPr++;
+      if (isClosingPr(c)) closingPr++;
+    }
+
+    final listedCorrectly =
+        isOpeningPr(listed[0]) && isClosingPr(listed[listed.length - 1]);
+
+    return listedCorrectly && openingPr == closingPr;
+  }
 }
