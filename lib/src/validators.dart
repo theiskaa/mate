@@ -25,7 +25,7 @@ class Validators {
 
   // Checks if given part is completed or not.
   static bool isNotCompletedPart(String p) {
-    return multDivPer.hasMatch(p) || p.contains('+') || isPr(p);
+    return multDivPer.hasMatch(p) || p.contains('+') || parentheses.hasMatch(p);
   }
 
   // Checks if given char is num or not.

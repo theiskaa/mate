@@ -100,6 +100,27 @@ void main() {
             ],
           ),
         ],
+        "((10 % 2) * 4 + 0.2) / 2 * 4 - 2": [
+          Token(type: Type.subExpression, value: [
+            Token(type: Type.subExpression, value: [
+              Token(type: Type.subExpression, value: [
+                Token(type: Type.number, value: Token.number(10)),
+                Token(type: Type.percentage),
+                Token(type: Type.number, value: Token.number(2)),
+              ]),
+              Token(type: Type.multiplication),
+              Token(type: Type.number, value: Token.number(4)),
+              Token(type: Type.addition),
+              Token(type: Type.number, value: Token.number(0.2)),
+            ]),
+            Token(type: Type.division),
+            Token(type: Type.number, value: Token.number(2)),
+            Token(type: Type.multiplication),
+            Token(type: Type.number, value: Token.number(4)),
+          ]),
+          Token(type: Type.subtraction),
+          Token(type: Type.number, value: Token.number(2)),
+        ],
       };
 
       // Loop and test test cases.

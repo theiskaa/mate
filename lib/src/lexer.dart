@@ -115,11 +115,11 @@ class Lexer {
       oneTime = '';
     }
 
-    // Should remove parentheses, if expression just wrapped with parentheses.
+    // Should remove parentheses, if expression is wrapped with parentheses.
     // And not contains any nested sub expression into it.
-    if (subExp.contains(Validators.parentheses)) {
-      final int _nesting = _countNesting(subExp);
-      if (_nesting == 1) subExp = subExp.replaceAll(Validators.parentheses, '');
+    final isWrapped = _isWrappedWithParentheses(subExp);
+    if (isWrapped) {
+      subExp = subExp.substring(1, subExp.length - 1);
     }
 
     for (var i = 0; i < subExp.length; i++) {
@@ -154,19 +154,26 @@ class Lexer {
     return nesting;
   }
 
-  // Counts expression's nesting level.
-  int _countNesting(String exp) {
+  // Checks if given expression wrapped with extra parentheses.
+  // `2*(5*5)` - isn't wrapped with parentheses, it just contains parentheses.
+  // But, (2*(5*5)) is wrapped with parentheses.
+  bool _isWrappedWithParentheses(String exp) {
+    if (!exp.contains(Validators.parentheses)) return false;
+
+    final isW = Validators.isPr(exp[0]) && Validators.isPr(exp[exp.length - 1]);
+
     int nesting = 0;
-
-    // Should return nothing, if expression isn't wrapped with parentheses.
-    var isInPr =
-        !Validators.isPr(exp[0]) || !Validators.isPr(exp[exp.length - 1]);
-    if (isInPr) return 0;
-
     for (var i = 0; i < exp.length; i++) {
       if (Validators.isOpeningPr(exp[i])) nesting++;
     }
 
-    return nesting;
+    /* TODO: Has problem on seperated parentheses expressions.
+    
+    We should return is wrapped to false when expression looks like:
+    (x-y) * (x+y) - Because, this expression wasn't wrapped with parentheses.
+
+    */
+
+    return isW && nesting > 0;
   }
 }
