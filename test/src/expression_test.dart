@@ -45,6 +45,23 @@ void main() {
             Token(type: Type.number, value: Token.number(2)),
           ]),
         ],
+        ((4 + 5) * (4 + 2)) / 2: [
+          Token(type: Type.subExpression, value: [
+            Token(type: Type.subExpression, value: [
+              Token(type: Type.number, value: Token.number(4)),
+              Token(type: Type.addition),
+              Token(type: Type.number, value: Token.number(5)),
+            ]),
+            Token(type: Type.multiplication),
+            Token(type: Type.subExpression, value: [
+              Token(type: Type.number, value: Token.number(4)),
+              Token(type: Type.addition),
+              Token(type: Type.number, value: Token.number(2)),
+            ]),
+          ]),
+          Token(type: Type.division),
+          Token(type: Type.number, value: Token.number(2)),
+        ],
       };
 
       tests.forEach((expected, parts) {
