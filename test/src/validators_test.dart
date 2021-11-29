@@ -79,6 +79,7 @@ void main() {
         '(20*5+1)': true,
         '(20*2) - 10)': false,
         '*(20)abc^&': false,
+        '(2)()': false,
       };
 
       tests.forEach((exp, expected) {
