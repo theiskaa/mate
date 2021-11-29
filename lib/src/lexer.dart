@@ -4,9 +4,10 @@ import 'validators.dart';
 
 /// #### Lexer is a simple expression parser.
 ///
-/// It takes string expression, scans it and then generates tokens from expression.
+/// It takes string expression, converts and generates tokens from expression.
+///
 /// For example:
-/// if expression is `"2+2"`, then [Lexer]'s output will look something like:
+/// If expression is `"2+2"`, then [Lexer]'s output will look something like:
 /// ```dart
 /// [
 ///   Token(Type.number, number(2)),
@@ -32,26 +33,25 @@ import 'validators.dart';
 ///   ),
 /// ]
 /// ```
-/// We have `subExpression` typed token in output, because we should re-calculate it and then
+/// We have `subExpression` typed token in output, because we have to re-calculate it and then
 /// take sum of result and number. So when we calculate subExpression, we'd get `10` right?
-/// So, final equation would be: `2 + 10` = `12`.
+/// However, final equation would be: `2 + 10` = `12`.
 class Lexer {
-  // Removes all white spaces, re-assigns points and divisions.
+  /// Removes all white spaces, re-assigns points and divisions.
   String trimExpression(String exp) {
     return exp.replaceAll(' ', '').replaceAll(',', '.').replaceAll(':', '/');
   }
 
-  // Parse, is the main parsing function of lexer, it usually used to parse
-  // not-modified user input expression.
+  /// Parse, is the main parsing function of lexer, it used to parse not-modified user input expression.
   //
-  // To parse sub expression, we use [parseSubExpression]
+  /// To parse sub expression, we use [parseSubExpression]
   List<Token> parse(String expression) {
     var tokens = <Token>[];
 
     expression = trimExpression(expression);
 
-    String oneTime = '';
     int nesting = 0;
+    String oneTime = '';
 
     // Adds stored and not empty oneTime (usually numbers and sub expressions) to tokens list.
     finish() {
@@ -71,7 +71,7 @@ class Lexer {
 
       final isInParentheses = nesting > 0 || Validators.isClosingPr(c);
       if (!Validators.isNum(c) && !Validators.isPoint(c)) {
-        // If c is not convert able sign (+ or -), we should keep adding on `oneTime`
+        // If c is not convert able sign (+ or -), or if we are in parentheses. We should keep adding on `oneTime`
         // 2+2*5 --> 2, (2*5) is full oneTime that it's contains not convert able number.
         if (!Validators.isNummable(c) || i == 0 || isInParentheses) {
           oneTime += c;
@@ -100,13 +100,15 @@ class Lexer {
     return tokens;
   }
 
-  // Basically used to parse(convert string expression to tokens list) sub expressions.
-  // It has it's own algorithm to parse sub string expression, So, it doesn't uses algorithm of default parsing function.
+  /// Parsing function for sub expressions.
+  ///
+  /// subExpression parsing and expression parsing algorithm are very common.
+  /// In subExpression parsing, we break each char to a token (when we aren't in parentheses).
   List<Token> parseSubExpression(String subExp) {
     var tokens = <Token>[];
 
-    String oneTime = '';
     int nesting = 0;
+    String oneTime = '';
 
     // Adds stored and not empty oneTime (usually numbers) to tokens list.
     addOneTime() {
@@ -158,8 +160,8 @@ class Lexer {
     return nesting;
   }
 
-  // Checks if given expression wrapped with extra parentheses.
-  // `2*(5*5)` - isn't wrapped with parentheses, it just contains parentheses.
+  // Checks if given expression wrapped with parentheses.
+  // `(20/4) * (10/2)` - isn't wrapped with parentheses, it just contains parentheses.
   // But, (2*(5*5)) is wrapped with parentheses.
   bool _isWrappedWithParentheses(String exp) {
     if (!exp.contains(Validators.parentheses)) return false;

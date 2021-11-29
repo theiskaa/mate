@@ -20,13 +20,15 @@ enum Type {
   undefined // alternative to null.
 }
 
-// Token is a main object class that'd used as lexer's tokens.
+/// Token is a main object class.
+///
+/// That is alternative form of expression's each charachter.
 class Token {
   Type type;
   dynamic value;
 
   Token({required this.type, this.value}) {
-    // Set value if it's type sign and
+    // Set value if its type is sign.
     if (type.isSign && value == null) value = type.value();
   }
 

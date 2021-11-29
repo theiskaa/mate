@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:mate/src/tokens.dart';
 
-// Takes list of tokens and logs each tokens JSON tree.
+// Takes list of tokens and logs each token's JSON tree.
 void logTree(List<Token> tokens, [String divider = '----- ----- ----- ']) {
   const JsonEncoder encoder = JsonEncoder.withIndent('  ');
 
@@ -17,8 +17,8 @@ void logTree(List<Token> tokens, [String divider = '----- ----- ----- ']) {
   }
 }
 
-// Creates given token's JSON tree.
-// Basically used, in development mode, to debug converted expression.
+// Creates given token's JSON tree. 
+// Basically used in development mode.
 Map<String, dynamic> tokenToJsonTree(Token t) {
   Map<String, dynamic> tree = {'type': t.type.toString()};
 
