@@ -19,7 +19,7 @@ import 'src/dev_utils.dart';
 /// if it's invalid, then function will return `null`, otherwise as normal a double number value.
 class Mate {
   /// Decides running mode of mate.
-  /// As default it's `true`, (adapted to release mode).
+  /// As default it's `false`, (adapted to release mode).
   ///
   /// To run mate on debug mode (development mode), make [debugMode] true.
   /// It will log parsed expression's token tree, in each call.
