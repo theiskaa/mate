@@ -23,7 +23,6 @@ void main() {
   for (var expression in expressions) {
     // use [calculate] function, to parse, and calculate expression.
     final result = mate.calculate(expression);
-
     print(result);
   }
 }

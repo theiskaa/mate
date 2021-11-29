@@ -1,3 +1,17 @@
+## 0.0.5 - (29/11/2021)
+- **Resolved: [#13](https://github.com/theiskaa/mate/issues/13) Re-structure parsing algorithm**
+- **Resolved: [#3](https://github.com/theiskaa/mate/issues/3) Parse & Calculate parentheses**
+
+Now, mate has 2x clean and fast parsing structure, It converts given expression to tokens list, and by using that list expression class can calculate the final result.
+However, it looks like an interpreter now.
+
+**And also mate can calculate highly-nested (with parentheses) expressions.**
+#### Example:
+```dart
+final String exp = "((4 + 5) * ((2 * 2) + 2)) / (1.5 * 2)"
+final double? result = mate.calculate(exp); // --> 18
+```
+
 ## 0.0.4 - (29/10/2021)
 - **Resolved: [#10](https://github.com/theiskaa/mate/issues/10) Percentage Calculation Support**
 

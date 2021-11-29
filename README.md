@@ -25,10 +25,18 @@ final double? result = mate.calculate(expression); // --> 23
 When we call calculate, it checks the validness of expression automatically.
 So, we needn't to do some manual checking here. (If expression is invalid, then result would be null)
 
+But in anyways, if you wanna check the validness of expression manually, you can do it, like:
+```dart
+final bool isInvalid = mate.isInvalidExp(exp);
+```
+
+---
+
 > **Check [official example](https://github.com/theiskaa/mate/blob/main/example/main.dart) of Mate**
 
 > **Check [official UI implementation example](https://github.com/theiskaa/mate/blob/main/example/app.dart) of Mate**
 
+---
 
 ## Explanation
 Mate's **parsing**/**lexing** algorithm looks like an **interpreter**. <br>
