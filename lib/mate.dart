@@ -35,42 +35,20 @@ class Mate {
   /// Used to store parts(tokens) and then calculate final result.
   final Expression expression = Expression();
 
+  /// Looks and returns if provided expression is invalid or not. (for our library)
+  bool isInvalidExp(String exp) => !Validators.isValidExpression(exp);
+
   /// Takes user-input string expression, parses it by using [Lexer],
   /// and then calculates final result with [Expression].
   double? calculate(String exp) {
+    if (isInvalidExp(exp)) return null;
+
     final List<Token> parts = lexer.parse(exp);
-
-    if (isInvalidExp(parts)) return null;
-
     expression.parts = parts;
 
     // Log tokens/parts tree, if debug mode was enabled.
     if (debugMode) logTree(parts);
 
     return expression.calculate();
-  }
-
-  /// Looks and returns if provided expression is invalid or not. (for our library)
-  bool isInvalidExp(List<Token> tokens) {
-    // Token's list length can't be even number, it must to be odd.
-    if (tokens.length % 2 == 0) return true;
-
-    // Looks if operation starts or ends with any invalid starter/ender sign.
-    // Division, Product and percentage signs is invalid to start or end with.
-    final startsWithSign = !Validators.isNummable(tokens[0].value.toString());
-    final endsWithSign = !Validators.isNumOrPoint(
-      tokens[tokens.length - 1].value.toString(),
-    );
-
-    if (tokens[0].type.isSign && (startsWithSign || endsWithSign)) {
-      return true;
-    }
-
-    // Catch invalid tokens.
-    var invalidValues = tokens.where(
-      (t) => t.type == Type.undefined || t.value == null,
-    );
-
-    return invalidValues.isNotEmpty;
   }
 }

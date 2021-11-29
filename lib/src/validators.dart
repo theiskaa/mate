@@ -1,3 +1,4 @@
+/// Facade wrapper class for validation and checking stuffs.
 class Validators {
   // Pattern to catch points (commas and dots).
   static final points = RegExp(r"[,.]");
@@ -10,6 +11,9 @@ class Validators {
 
   // Pattern to catch parentheses.
   static final parentheses = RegExp(r"[()]");
+
+  // Pattern to catch incorrect signs/chars in expression.
+  static final invalidChars = RegExp(r"[A-Za-z&$^?{}#@!~'`;|\\n]");
 
   // Checks if given char is num or not.
   static bool isNum(String c) => nums.hasMatch(c);
@@ -60,5 +64,19 @@ class Validators {
         isOpeningPr(listed[0]) && isClosingPr(listed[listed.length - 1]);
 
     return listedCorrectly && openingPr == closingPr;
+  }
+
+  // Checks if given expression is valid or invalid.
+  // Checks invalid chars, nesting correctness of expression, and etc.
+  static bool isValidExpression(String exp) {
+    // Size of expression cannot be less than three. | Example: "2+2"
+    if (exp.length < 3) return false;
+
+    // Check invalid signs.
+    final hasInvalidSign = exp.contains(invalidChars);
+    if (hasInvalidSign) return false;
+
+    // Check expression's nesting correctness.
+    return nestedCorrectly(exp);
   }
 }

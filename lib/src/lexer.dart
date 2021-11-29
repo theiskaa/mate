@@ -36,6 +36,11 @@ import 'validators.dart';
 /// take sum of result and number. So when we calculate subExpression, we'd get `10` right?
 /// So, final equation would be: `2 + 10` = `12`.
 class Lexer {
+  // Removes all white spaces, re-assigns points and divisions.
+  String trimExpression(String exp) {
+    return exp.replaceAll(' ', '').replaceAll(',', '.').replaceAll(':', '/');
+  }
+
   // Parse, is the main parsing function of lexer, it usually used to parse
   // not-modified user input expression.
   //
@@ -43,8 +48,7 @@ class Lexer {
   List<Token> parse(String expression) {
     var tokens = <Token>[];
 
-    // Trim white spaces, and replace point instead of commas.
-    expression = expression.replaceAll(' ', '').replaceAll(',', '.');
+    expression = trimExpression(expression);
 
     String oneTime = '';
     int nesting = 0;
