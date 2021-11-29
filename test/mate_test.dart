@@ -1,14 +1,12 @@
 import 'package:mate/mate.dart';
-import 'package:mate/src/lexer.dart';
 import 'package:test/test.dart';
 
 void main() {
-  late Lexer lexer;
-  late Mate mate;
+  late Mate mate, debugModeMate;
 
   setUpAll(() {
-    lexer = Lexer();
     mate = Mate();
+    debugModeMate = Mate(debugMode: true);
   });
 
   group("[Mate]", () {
@@ -18,11 +16,10 @@ void main() {
         "-2 + 5 + 10 * 2 - 2.5 + 50 % 2": false,
         "2+2": false,
       };
-      tests.forEach((exp, expected) {
-        final tokens = lexer.parse(exp);
 
-        expect(mate.isInvalidExp(tokens), expected);
-      });
+      tests.forEach(
+        (exp, expected) => expect(mate.isInvalidExp(exp), expected),
+      );
     });
 
     test('calculate should work properly', () {
@@ -30,10 +27,22 @@ void main() {
         "-2ab*10*": null,
         "-2 + 5 + 10 * 2 - 2.5 + 50 % 2": 21.5,
         "2+2*5": 12,
+        "((((2+2)+(2.5+2.5))*((1.5 * 2)* (1.5 + 1.5))))": 81,
+        "((((2.5 + 2.5) * ((1+1) + ((0.5*(1+1))+(0.5*2)))) / ((1*2) * (1*2)))) * 0.1":
+            0.5,
       };
 
       tests.forEach((exp, expected) {
         final got = mate.calculate(exp);
+        expect(got, expected);
+      });
+    });
+
+    test('[DebugMode enabled] calculate should work properly', () {
+      final tests = {"2*2": 4};
+
+      tests.forEach((exp, expected) {
+        final got = debugModeMate.calculate(exp);
         expect(got, expected);
       });
     });

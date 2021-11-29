@@ -11,6 +11,8 @@ void main() {
         Token.division: "/",
         Token.percentage: "%",
         Token.dot: ".",
+        Token.leftPR: "(",
+        Token.rightPR: ")",
         Token.number(20): 20,
         Token.subExpression('2*2'): [
           Token(type: Type.number, value: Token.number(2)),
@@ -29,6 +31,8 @@ void main() {
         Type.division: "/",
         Type.percentage: "%",
         Type.dot: ".",
+        Type.leftPR: "(",
+        Type.rightPR: ")",
       };
 
       tests.forEach((key, expected) {
@@ -47,6 +51,8 @@ void main() {
         Type.division: true,
         Type.percentage: true,
         Type.dot: true,
+        Type.leftPR: true,
+        Type.rightPR: true,
         Type.number: false,
         Type.subExpression: false,
       };
@@ -69,6 +75,16 @@ void main() {
       tests.forEach((key, expected) => expect(key.isSubExpression, expected));
     });
 
+    test('isParenthesesSign should expect values correctly', () {
+      final tests = {
+        Type.leftPR: true,
+        Type.rightPR: true,
+        Type.subExpression: false,
+      };
+
+      tests.forEach((key, expected) => expect(key.isParenthesesSign, expected));
+    });
+
     test('value should expect right value from type', () {
       final tests = {
         Type.addition: "+",
@@ -77,6 +93,8 @@ void main() {
         Type.division: "/",
         Type.percentage: "%",
         Type.dot: ".",
+        Type.leftPR: '(',
+        Type.rightPR: ')',
         Type.number: Token.number(2),
         Type.subExpression: Token.subExpression('2*2'),
       };
@@ -109,6 +127,8 @@ void main() {
         "/": Type.division,
         "%": Type.percentage,
         ".": Type.dot,
+        "(": Type.leftPR,
+        ")": Type.rightPR,
         "2": Type.number,
         "2*2": Type.subExpression,
       };

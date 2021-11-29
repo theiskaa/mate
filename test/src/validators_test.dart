@@ -42,5 +42,50 @@ void main() {
       expect(Validators.isNumOrPoint('-'), false);
       expect(Validators.isNumOrPoint('+'), false);
     });
+
+    test('isPr should work properly', () {
+      expect(Validators.isPr('('), true);
+      expect(Validators.isPr(')'), true);
+      expect(Validators.isPr('-'), false);
+      expect(Validators.isPr('+'), false);
+    });
+
+    test('isOpeningPr should work properly', () {
+      expect(Validators.isOpeningPr('('), true);
+      expect(Validators.isOpeningPr(')'), false);
+    });
+
+    test('isClosingPr should work properly', () {
+      expect(Validators.isClosingPr(')'), true);
+      expect(Validators.isClosingPr('('), false);
+    });
+
+    test('nestedCorrectly should work properly', () {
+      final tests = {
+        '(20+5) * (20/4)': true,
+        '(20*5+1)': true,
+        '(20*2) - 10)': false,
+      };
+
+      tests.forEach((exp, expected) {
+        final got = Validators.nestedCorrectly(exp);
+        expect(got, expected);
+      });
+    });
+
+    test('isValidExpression should work correctly', () {
+      final tests = {
+        '(20+5) * (20/4)': true,
+        '(20*5+1)': true,
+        '(20*2) - 10)': false,
+        '*(20)abc^&': false,
+        '(2)()': false,
+      };
+
+      tests.forEach((exp, expected) {
+        final got = Validators.isValidExpression(exp);
+        expect(got, expected);
+      });
+    });
   });
 }
