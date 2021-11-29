@@ -43,7 +43,7 @@ However, we pass lexer's parsing result to `Expression`'s parts, and then we cal
 Our expression is `"2 + 2 * 5"`, that expression would be passed to `Mate`'s `calculate` function.
 Then, it'd call `Lexer`'s `parse` function to convert expression to `List<Token>`.
 
-**Our expressions, parsed variant would look like:**
+**Our expression's, parsed variant would look like:**
 ```dart
 [
   Token(type: Type.number, value: Token.number(2)),
@@ -56,3 +56,26 @@ Then, it'd call `Lexer`'s `parse` function to convert expression to `List<Token>
 ]
 ```
 Then, by using that result, `Expression` can calculate final result. --> `2 + (2*5) = 2 + 10 = 12`.
+
+Also parentheses are sub expressions, and by adding parentheses parsing support, sub expression also can include another sub expression inside it. (We call it nested expression).
+#### Let's see an example of parentheses:
+When our expression is `((20 / 4) * (20 / 5)) + 1`, then parsed variant of it, would look like:
+```dart
+[
+  Token(type: Type.subExpression, value: [
+    Token(type: Type.subExpression, value: [
+      Token(type: Type.number, value: Token.number(20)),
+      Token(type: Type.division),
+      Token(type: Type.number, value: Token.number(4)),
+    ]),
+    Token(type: Type.multiplication),
+    Token(type: Type.subExpression, value: [
+      Token(type: Type.number, value: Token.number(20)),
+      Token(type: Type.division),
+      Token(type: Type.number, value: Token.number(5)),
+    ]),
+  ]),
+  Token(type: Type.addition),
+  Token(type: Type.number, value: Token.number(1)),
+]
+```

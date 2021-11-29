@@ -121,6 +121,23 @@ void main() {
           Token(type: Type.subtraction),
           Token(type: Type.number, value: Token.number(2)),
         ],
+        "((20 / 4) * (20 / 5)) + 1": [
+          Token(type: Type.subExpression, value: [
+            Token(type: Type.subExpression, value: [
+              Token(type: Type.number, value: Token.number(20)),
+              Token(type: Type.division),
+              Token(type: Type.number, value: Token.number(4)),
+            ]),
+            Token(type: Type.multiplication),
+            Token(type: Type.subExpression, value: [
+              Token(type: Type.number, value: Token.number(20)),
+              Token(type: Type.division),
+              Token(type: Type.number, value: Token.number(5)),
+            ]),
+          ]),
+          Token(type: Type.addition),
+          Token(type: Type.number, value: Token.number(1)),
+        ],
       };
 
       // Loop and test test cases.
