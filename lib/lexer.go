@@ -1,5 +1,7 @@
 package lib
 
+import "mate/pkg"
+
 // Lexer is the main lexical converter of the mate.
 // It converts given string Input(expression) to an array of tokens.
 //
@@ -45,13 +47,21 @@ package lib
 //     └───────────────────────────────────┘
 //
 type Lexer struct {
-	Input string // Expression Input.
-	Char  byte   // Current char under examination.
+	Input        string // Expression Input.
+	Char         byte   // Current char under examination.
+	position     int    // Current position in input (points to current char).
+	readPosition int    // Current reading position in input (after current char).
 }
 
 // NewLexer is default way of creating a new Lexer object.
 func NewLexer(input string) Lexer {
-	return Lexer{Input: input}
+	lexer := Lexer{Input: input}
+
+	// Activates lexer for further usage.
+	// Fills, Char, position, and readPosition.
+	lexer.readChar()
+
+	return lexer
 }
 
 // Lex loops through the Input, converts each char to a understandable token
@@ -60,15 +70,7 @@ func NewLexer(input string) Lexer {
 func (l *Lexer) Lex() []Token {
 	tokens := []Token{}
 
-	for _, char := range l.Input {
-		// Skip white(empty) spaces.
-		if char == ' ' || char == '\n' || char == '\t' || char == '\r' {
-			continue
-		}
-
-		// Update lexer values.
-		l.Char = byte(char)
-
+	for l.Char != 0 {
 		token := l.GenerateToken()
 		tokens = append(tokens, token)
 	}
@@ -78,16 +80,68 @@ func (l *Lexer) Lex() []Token {
 
 // GenerateToken converts [l.Char] to token.
 func (l *Lexer) GenerateToken() Token {
-	// Check if it's digit number
-	if '0' <= l.Char && l.Char <= '9' {
-		// TODO: Read number
-	}
+	l.skipWhitespace()
 
-	// Check if it's supported token type.
+	// Check if it's supported token or operation sign.
 	if lit, isSign := strToTokenType[string(l.Char)]; isSign {
 		// TODO: Check next char to determine if it's negative number actually.
+		// TODO: Check next chat to determine if it's parentheses sub expression.
+
+		l.readChar()
 		return NewToken(lit, lit.toStrValue())
 	}
 
-	return NewToken(ILLEGAL, string(l.Char))
+	// Check if it's number
+	if pkg.IsNumber(l.Char) {
+		num := l.readNumber()
+		return NewToken(NUMBER, num)
+	}
+
+	ch := l.Char
+	l.readChar()
+
+	return NewToken(ILLEGAL, string(ch))
+}
+
+// skipWhitespace skips white(empty) spaces and updates state of lexer (by readChar).
+func (l *Lexer) skipWhitespace() {
+	for l.Char == ' ' || l.Char == '\t' || l.Char == '\n' || l.Char == '\r' {
+		l.readChar()
+	}
+}
+
+// readChar is character reading functionality, which also updates state of lexer.
+// If readPosition limit exceeded, appends 0 to lexer's char. (which means end of reading input)
+func (l *Lexer) readChar() {
+	if l.readPosition >= len(l.Input) {
+		l.Char = 0
+	} else {
+		l.Char = l.Input[l.readPosition]
+	}
+
+	// Update positions.
+	l.position = l.readPosition
+	l.readPosition += 1
+}
+
+// readNumber goes and collects from start to end of
+// the string number, and returns the full part of that number from input.
+//
+//  "426.7" actually is a array of [rune]s
+//  ┌──────────────────────────────────────┐
+//  │ 426.7 ───▶ ['4', '2', '6', '.', '7'] │
+//  └──────────────────────────────────────┘
+//   To make computer understood that number,
+//   We need to find the start and end index
+//   from digit to digit.
+//
+func (l *Lexer) readNumber() string {
+	start := l.position
+
+	// Keep reading forward chars if l.Char is number of number-point.
+	for pkg.IsNumber(l.Char) || pkg.IsPoint(l.Char) {
+		l.readChar()
+	}
+
+	return l.Input[start:l.position]
 }
