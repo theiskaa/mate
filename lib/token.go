@@ -5,16 +5,29 @@ type TokenType string
 
 // Token is the input's char representation structure.
 type Token struct {
-	Type    TokenType
-	Literal string
+	Type      TokenType
+	SubTokens []Token
+	Literal   string
+}
+
+// IsSubExp checks if token is a sub expression token.
+func (t *Token) IsSubExp() bool {
+	return len(t.SubTokens) == 0
+}
+
+// toStrValue is inherited method for TokenType.
+// converts a token type variable to string value.
+func (t *TokenType) toStrValue() string {
+	return tokenTypeToStr[*t]
 }
 
 // NewToken is default function which used to create new token variable.
-func NewToken(tokenType TokenType, ch byte) Token {
+func NewToken(tokenType TokenType, ch string) Token {
 	return Token{Type: tokenType, Literal: string(ch)}
 }
 
 const (
+	SUB_EXP = "SUB_EXP"
 	NUMBER  = "NUMBER"
 	ILLEGAL = "ILLEGAL"
 
@@ -34,9 +47,18 @@ var strToTokenType = map[string]TokenType{
 	"+": PLUS,
 	"-": MINUS,
 	"*": PRODUCT,
-	"•": PRODUCT,
 	"/": DIVIDE,
 	":": DIVIDE,
 	"(": LPAREN,
 	")": RPAREN,
+}
+
+// tokenTypeToStr  is token-constant-to-string-literal value map.
+var tokenTypeToStr = map[TokenType]string{
+	PLUS:    "+",
+	MINUS:   "-",
+	PRODUCT: "*",
+	DIVIDE:  "/",
+	LPAREN:  "(",
+	RPAREN:  ")",
 }

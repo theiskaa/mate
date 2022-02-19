@@ -1,7 +1,7 @@
 package lib
 
 // Lexer is the main lexical converter of the mate.
-// It converts given string input(expression) to an array of tokens.
+// It converts given string Input(expression) to an array of tokens.
 //
 // > VISUAL EXAMPLE OF LEXER
 //
@@ -11,56 +11,63 @@ package lib
 //     └──────────────────────────┘
 //
 //      OUTPUT OF THE LEXER
-//     ┌───────────────────────────────┐
-//     │  ┌─────────────────────────┐  │
-//     │  │   LPAREN                │─────────▶ First Sub Expression
-//     │  │  ┌───────────────────┐  │  │
-//     │  │  │   ┌───────────┐   │  │  │
-//     │  │  │   │ NUMBER(4) │   │────────────▶ Second Sub Expression
-//     │  │  │   │ PRODUCT   │   │  │  │        Which belongs to first sub expression.
-//     │  │  │   │ NUMBER(5) │─┐ │  │  │
-//     │  │  │   └───────────┘ └────────────┐
-//     │  │  │    MINUS          │  │  │    │
-//     │  │  │    NUMBER(5)      │  │  │    └─▶ Third Sub Expression
-//     │  │  └───────────────────┘  │  │        Which belongs to second sub expression.
-//     │  │   RPAREN                │  │
-//     │  │   PRODUCT               │  │
-//     │  │   NUMBER(2)             │  │
-//     │  └─────────────────────────┘  │
-//     │   PLUS                        │
-//     │  ┌─────────────────────────┐  │    ┌─▶ Fourth Sub Expression
-//     │  │  NUMBER(24)             │  │    │
-//     │  │  DIVIDE                 │───────┘
-//     │  │  NUMBER(2)              │  │
-//     │  └─────────────────────────┘  │
-//     └───────────────────────────────┘
+//     ┌───────────────────────────────────┐
+//     │                                   │    ┌─▶ First Sub Expression
+//     │   ┌───────────────────────────┐   │    │
+//     │   │                           │────────┘
+//     │   │   ┌───────────────────┐   │   │
+//     │   │   │                   │─┐ │   │
+//     │   │   │   ┌───────────┐   │ │ │   │
+//     │   │   │   │ NUMBER(4) │   │ └────────────▶ Second Sub Expression
+//     │   │   │   │ PRODUCT   │─┐ │   │   │        Which belongs to first sub expression.
+//     │   │   │   │ NUMBER(5) │ │ │   │   │
+//     │   │   │   └───────────┘ └──────────────┐
+//     │   │   │    MINUS          │   │   │    │
+//     │   │   │    NUMBER(5)      │   │   │    └─▶ Third Sub Expression
+//     │   │   │                   │   │   │        Which belongs to second sub expression.
+//     │   │   └───────────────────┘   │   │
+//     │   │                           │   │
+//     │   │    PRODUCT                │   │
+//     │   │    NUMBER(2)              │   │
+//     │   │                           │   │
+//     │   └───────────────────────────┘   │
+//     │                                   │
+//     │    PLUS                           │
+//     │                                   │
+//     │   ┌──────────────────────────┐    │    ┌─▶ Fourth Sub Expression
+//     │   │                          │    │    │
+//     │   │  NUMBER(24)              │    │    │
+//     │   │  DIVIDE                  │─────────┘
+//     │   │  NUMBER(2)               │    │
+//     │   │                          │    │
+//     │   └──────────────────────────┘    │
+//     │                                   │
+//     └───────────────────────────────────┘
 //
 type Lexer struct {
-	input        string // Expression input.
-	ch           byte   // Current char under examination.
+	Input string // Expression Input.
+	Char  byte   // Current char under examination.
 }
 
 // NewLexer is default way of creating a new Lexer object.
 func NewLexer(input string) Lexer {
-	return Lexer{
-		input: input,
-	}
+	return Lexer{Input: input}
 }
 
-// Lex loops through the input, converts each char to a understandable token
+// Lex loops through the Input, converts each char to a understandable token
 // variable, as a result we'd got a list of tokens, which will be used to calculate
 // final result of expression or check for validness of expression.
 func (l *Lexer) Lex() []Token {
 	tokens := []Token{}
 
-	for _, ch := range l.input {
+	for _, char := range l.Input {
 		// Skip white(empty) spaces.
-		if ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r' {
+		if char == ' ' || char == '\n' || char == '\t' || char == '\r' {
 			continue
 		}
 
 		// Update lexer values.
-		l.ch = byte(ch)
+		l.Char = byte(char)
 
 		token := l.GenerateToken()
 		tokens = append(tokens, token)
@@ -69,23 +76,18 @@ func (l *Lexer) Lex() []Token {
 	return tokens
 }
 
-// GenerateToken converts [l.ch] to token.
+// GenerateToken converts [l.Char] to token.
 func (l *Lexer) GenerateToken() Token {
 	// Check if it's digit number
-	if isNumber(l.ch) {
+	if '0' <= l.Char && l.Char <= '9' {
 		// TODO: Read number
 	}
 
 	// Check if it's supported token type.
-	if lit, isSign := strToTokenType[string(l.ch)]; isSign {
+	if lit, isSign := strToTokenType[string(l.Char)]; isSign {
 		// TODO: Check next char to determine if it's negative number actually.
-		return NewToken(lit, l.ch)
+		return NewToken(lit, lit.toStrValue())
 	}
 
-	return NewToken(ILLEGAL, l.ch)
-}
-
-// isNumber checks if given char is digit number or not.
-func isNumber(ch byte) bool {
-	return '0' <= ch && ch <= '9'
+	return NewToken(ILLEGAL, string(l.Char))
 }
