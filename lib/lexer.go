@@ -36,8 +36,8 @@ package lib
 //     └───────────────────────────────┘
 //
 type Lexer struct {
-	input string // Expression input.
-	ch    string // Current char under examination.
+	input        string // Expression input.
+	ch           byte   // Current char under examination.
 }
 
 // NewLexer is default way of creating a new Lexer object.
@@ -47,26 +47,45 @@ func NewLexer(input string) Lexer {
 	}
 }
 
-// Parse loops through the input, converts each char to a understandable token
+// Lex loops through the input, converts each char to a understandable token
 // variable, as a result we'd got a list of tokens, which will be used to calculate
 // final result of expression or check for validness of expression.
-func (l *Lexer) Parse() []Token {
+func (l *Lexer) Lex() []Token {
 	tokens := []Token{}
 
 	for _, ch := range l.input {
-		// Never mind empty/white spaces.
+		// Skip white(empty) spaces.
 		if ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r' {
 			continue
 		}
 
-		// TODO: Implement NextToken functionality.
+		// Update lexer values.
+		l.ch = byte(ch)
+
+		token := l.GenerateToken()
+		tokens = append(tokens, token)
 	}
 
 	return tokens
 }
 
-// NextToken checks [l.ch] element and converts it token
-func (l *Lexer) NextToken() Token {
-	// TODO: Add functionality.
-	return Token{}
+// GenerateToken converts [l.ch] to token.
+func (l *Lexer) GenerateToken() Token {
+	// Check if it's digit number
+	if isNumber(l.ch) {
+		// TODO: Read number
+	}
+
+	// Check if it's supported token type.
+	if lit, isSign := strToTokenType[string(l.ch)]; isSign {
+		// TODO: Check next char to determine if it's negative number actually.
+		return NewToken(lit, l.ch)
+	}
+
+	return NewToken(ILLEGAL, l.ch)
+}
+
+// isNumber checks if given char is digit number or not.
+func isNumber(ch byte) bool {
+	return '0' <= ch && ch <= '9'
 }

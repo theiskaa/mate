@@ -19,26 +19,24 @@ const (
 	ILLEGAL = "ILLEGAL"
 
 	// Operation tokens.
-	PLUS        = "+"
-	MINUS       = "-"
-	PRODUCT     = "*"
-	PRODUCT_DOT = "•"
-	DIVIDE      = "/"
-	DIVIDE_COL  = ":"
+	PLUS    = "+"
+	MINUS   = "-"
+	PRODUCT = "*"
+	DIVIDE  = "/"
 
 	// Sign tokens.
 	LPAREN = "("
 	RPAREN = ")"
 )
 
-// stringToToken is string literal-to-token-constant value map.
-var stringToToken = map[string]TokenType{
+// strToTokenType  is string literal-to-token-constant value map.
+var strToTokenType = map[string]TokenType{
 	"+": PLUS,
 	"-": MINUS,
 	"*": PRODUCT,
-	"•": PRODUCT_DOT,
+	"•": PRODUCT,
 	"/": DIVIDE,
-	":": DIVIDE_COL,
+	":": DIVIDE,
 	"(": LPAREN,
 	")": RPAREN,
 }
