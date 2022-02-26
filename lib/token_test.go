@@ -37,6 +37,73 @@ func TestIsSubExp(t *testing.T) {
 	}
 }
 
+func TestIsNum(t *testing.T) {
+	tests := []struct {
+		token    lib.Token
+		expected bool
+	}{
+		{expected: true, token: lib.NewToken("6")},
+		{expected: true, token: lib.NewToken("42")},
+		{expected: true, token: lib.NewToken("7")},
+		{expected: false, token: lib.NewToken("*")},
+		{expected: false, token: lib.NewToken("-")},
+		{expected: false, token: lib.NewToken("+")},
+		{expected: false, token: lib.NewToken(":")},
+	}
+
+	for _, td := range tests {
+		got := td.token.IsNum()
+
+		if got != td.expected {
+			t.Errorf("Sum was different of IsNum | Want: %v, Got: %v", td.expected, got)
+		}
+	}
+}
+
+func TestIsPlusOrMinus(t *testing.T) {
+	tests := []struct {
+		token    lib.Token
+		expected bool
+	}{
+		{expected: true, token: lib.NewToken("-")},
+		{expected: true, token: lib.NewToken("+")},
+		{expected: false, token: lib.NewToken("-6")},
+		{expected: false, token: lib.NewToken("+42")},
+		{expected: false, token: lib.NewToken("*")},
+		{expected: false, token: lib.NewToken(":")},
+	}
+
+	for _, td := range tests {
+		got := td.token.IsPlusOrMinus()
+
+		if got != td.expected {
+			t.Errorf("Sum was different of IsPlusOrMinus | Want: %v, Got: %v", td.expected, got)
+		}
+	}
+}
+
+func TestIsProdOrDiv(t *testing.T) {
+	tests := []struct {
+		token    lib.Token
+		expected bool
+	}{
+		{expected: true, token: lib.NewToken("*")},
+		{expected: true, token: lib.NewToken("/")},
+		{expected: false, token: lib.NewToken("-6")},
+		{expected: false, token: lib.NewToken("+42")},
+		{expected: false, token: lib.NewToken("-")},
+		{expected: false, token: lib.NewToken("+")},
+	}
+
+	for _, td := range tests {
+		got := td.token.IsProdOrDiv()
+
+		if got != td.expected {
+			t.Errorf("Sum was different of IsProdOrDiv | Want: %v, Got: %v", td.expected, got)
+		}
+	}
+}
+
 func TestToStrValue(t *testing.T) {
 	tests := []struct {
 		token    lib.TokenType

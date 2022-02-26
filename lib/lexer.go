@@ -1,6 +1,8 @@
 package lib
 
-import "mate/pkg"
+import (
+	"mate/pkg"
+)
 
 // Lexer is the main lexical converter of the mate.
 // It converts given string Input(expression) to an array of tokens.
@@ -68,17 +70,31 @@ func NewLexer(input string) Lexer {
 // variable, as a result we'd got a list of tokens, which will be used to calculate
 // final result of expression or check for validness of expression.
 func (l *Lexer) Lex() []Token {
-	tokens := []Token{}
+	fpTokens := []Token{}
 
 	for l.Char != 0 {
 		token := l.GenerateToken()
-		tokens = append(tokens, token)
+		fpTokens = append(fpTokens, token)
 	}
 
+	tokens := l.CombineTokens(fpTokens)
 	return tokens
 }
 
-// GenerateToken converts [l.Char] to token.
+// GenerateToken converts byte-character to token-structure.
+// Mainly used to generate 1D(first-party) tokens in [Lex] method.
+//
+//         ╭─────────────╮ In second part of token generation, white(empty) spaces are auto-skipped
+//  ╭──────│───────────╮ │ by [skipWhitespace] method. And GenerateToken checks: {if that character is sign or not},
+//  │ 422  +  6  *  7  │ │ if it's, method, firstly reads that character by [readChar].
+//  ╰──│───────────────╯ ╰───▶ And then creates new token by automatically filling token data.
+//     │
+//     │ In genesis, [l.Ch] would be "4", and [GenerateToken] has to determine
+//     │ "4" can be not single-digit, it needs to reed full number not only "4".
+//     ╰───▶ So, [readNumber] method will be used to read and return final number.
+//
+//   ... and so on ...
+//
 func (l *Lexer) GenerateToken() Token {
 	l.skipWhitespace()
 
@@ -138,9 +154,39 @@ func (l *Lexer) GenerateToken() Token {
 //  ╰────────────────────────────────╯
 //
 func (l *Lexer) CombineTokens(tokens []Token) []Token {
-	combinedTokens := []Token{}
+	var combinedTokens, subTokens []Token
 
-	// TODO: Add functionality.
+	for index, current := range tokens {
+		isNotExceed := index >= 0 && index < len(tokens)-1
+
+		// Generate next token, if it's not last loop.
+		var next Token
+		if isNotExceed {
+			next = tokens[index+1]
+		}
+
+		// Checks matching of new or exiting sub-token.
+		isInSub := len(subTokens) > 0 && (current.IsNum() || current.IsProdOrDiv())
+		if isInSub || current.IsNum() && next.IsProdOrDiv() {
+			subTokens = append(subTokens, current)
+			continue
+		}
+
+		// Add sub-token to tokens array, and refresh sub-tokens array.
+		if len(subTokens) > 0 {
+			combinedTokens = append(combinedTokens, NewSubToken(subTokens))
+			subTokens = []Token{}
+		}
+
+		combinedTokens = append(combinedTokens, current)
+	}
+
+	// Avoid appending sub-expression-token to empty tokens list.
+	if len(combinedTokens) == 0 {
+		combinedTokens = subTokens
+	} else if len(subTokens) > 0 {
+		combinedTokens = append(combinedTokens, NewSubToken(subTokens))
+	}
 
 	return combinedTokens
 }
@@ -189,9 +235,9 @@ func (l *Lexer) readChar() {
 // the string number, and returns the full part of that number from input.
 //
 //  "-426.7" actually is a array of [rune]s
-//  ╭───────────────────────────────────────────╮
-//  │ 426.7 ───▶ ['-', '4', '2', '6', '.', '7'] │
-//  ╰───────────────────────────────────────────╯
+//  ╭────────────────────────────────────────────╮
+//  │ -426.7 ───▶ ['-', '4', '2', '6', '.', '7'] │
+//  ╰────────────────────────────────────────────╯
 //   To make computer understood that full number,
 //   We need to determine the start and end index
 //   of that full-number in rune array (from digit to digit).

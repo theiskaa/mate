@@ -55,6 +55,21 @@ func (t *Token) IsSubExp() bool {
 	return len(t.SubTokens) > 0
 }
 
+// IsNum checks if token is a number token or not.
+func (t *Token) IsNum() bool {
+	return t.Type == NUMBER
+}
+
+// IsPlusOrMinus checks if token is a PLUS token or MINUS token.
+func (t *Token) IsPlusOrMinus() bool {
+	return t.Type == PLUS || t.Type == MINUS
+}
+
+// IsProdOrDiv checks if token is a PRODUCT token or DIVIDE token.
+func (t *Token) IsProdOrDiv() bool {
+	return t.Type == PRODUCT || t.Type == DIVIDE
+}
+
 // toStrValue is inherited method for TokenType.
 // converts a token type variable to string value.
 func (t *TokenType) ToStrValue() string {
@@ -76,4 +91,9 @@ func NewToken(ch string) Token {
 	}
 
 	return Token{Type: ty, Literal: ch}
+}
+
+// NewSubToken is default function which used to create new sub token variable.
+func NewSubToken(data []Token) Token {
+	return Token{Type: SUB_EXP, SubTokens: data}
 }

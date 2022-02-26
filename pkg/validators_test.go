@@ -82,3 +82,27 @@ func TestIsPlusOrMinus(t *testing.T) {
 		}
 	}
 }
+
+func TestIsProdOrDiv(t *testing.T) {
+	tests := []struct {
+		char     string
+		expected bool
+	}{
+		{char: "*", expected: true},
+		{char: "/", expected: true},
+		{char: "+", expected: false},
+		{char: "-", expected: false},
+		{char: ".", expected: false},
+		{char: ",", expected: false},
+		{char: "1", expected: false},
+		{char: "5", expected: false},
+	}
+
+	for _, td := range tests {
+		got := pkg.IsProdOrDiv(td.char)
+
+		if got != td.expected {
+			t.Errorf("Sum of IsProdOrDiv was different, Want: %v, Got: %v", td.expected, got)
+		}
+	}
+}
