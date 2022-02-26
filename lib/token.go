@@ -1,5 +1,7 @@
 package lib
 
+import "mate/pkg"
+
 // TokenType is custom type representation for Token structure.
 type TokenType string
 
@@ -8,22 +10,6 @@ type Token struct {
 	Type      TokenType
 	SubTokens []Token
 	Literal   string
-}
-
-// IsSubExp checks if token is a sub expression token.
-func (t *Token) IsSubExp() bool {
-	return len(t.SubTokens) == 0
-}
-
-// toStrValue is inherited method for TokenType.
-// converts a token type variable to string value.
-func (t *TokenType) toStrValue() string {
-	return tokenTypeToStr[*t]
-}
-
-// NewToken is default function which used to create new token variable.
-func NewToken(tokenType TokenType, ch string) Token {
-	return Token{Type: tokenType, Literal: string(ch)}
 }
 
 const (
@@ -47,6 +33,7 @@ var strToTokenType = map[string]TokenType{
 	"+": PLUS,
 	"-": MINUS,
 	"*": PRODUCT,
+	"•": PRODUCT,
 	"/": DIVIDE,
 	":": DIVIDE,
 	"(": LPAREN,
@@ -61,4 +48,33 @@ var tokenTypeToStr = map[TokenType]string{
 	DIVIDE:  "/",
 	LPAREN:  "(",
 	RPAREN:  ")",
+}
+
+
+// IsSubExp checks if token is a sub expression token.
+func (t *Token) IsSubExp() bool {
+	return len(t.SubTokens) == 0
+}
+
+// toStrValue is inherited method for TokenType.
+// converts a token type variable to string value.
+func (t *TokenType) toStrValue() string {
+	return tokenTypeToStr[*t]
+}
+
+// NewToken is default function which used to create new token variable.
+func NewToken(ch string) Token {
+	var ty TokenType
+
+	if pkg.IsNumber(ch) {
+		ty = NUMBER
+	} else {
+		if t, ok := strToTokenType[ch]; ok {
+			ty = t
+		} else {
+			ty = ILLEGAL
+		}
+	}
+
+	return Token{Type: ty, Literal: ch}
 }
