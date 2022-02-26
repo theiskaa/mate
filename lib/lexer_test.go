@@ -32,18 +32,18 @@ func TestLex(t *testing.T) {
 	}{
 		{
 			testname: "should parse one-root base expression",
-			input:    "2 + 4.5 - 5",
+			input:    "2 + -4.5 - 5",
 			expected: []lib.Token{
 				{Type: lib.NUMBER, Literal: "2"},
 				{Type: lib.PLUS, Literal: "+"},
-				{Type: lib.NUMBER, Literal: "4.5"},
+				{Type: lib.NUMBER, Literal: "-4.5"},
 				{Type: lib.MINUS, Literal: "-"},
 				{Type: lib.NUMBER, Literal: "5"},
 			},
 		},
 		{
 			testname: "should parse multi-root base expression",
-			input:    "(4 * 5 - 5) * 2 + 24 / 2",
+			input:    "(4 * 5 - 5) * -2 + 24 / 2",
 			expected: []lib.Token{
 				{Type: lib.SUB_EXP, SubTokens: []lib.Token{
 					{Type: lib.SUB_EXP, SubTokens: []lib.Token{
@@ -56,7 +56,7 @@ func TestLex(t *testing.T) {
 						{Type: lib.NUMBER, Literal: "5"},
 					}},
 					{Type: lib.PRODUCT, Literal: "*"},
-					{Type: lib.NUMBER, Literal: "2"},
+					{Type: lib.NUMBER, Literal: "-2"},
 				}},
 				{Type: lib.PLUS, Literal: "+"},
 				{Type: lib.SUB_EXP, SubTokens: []lib.Token{

@@ -99,7 +99,7 @@ func (l *Lexer) GenerateToken() Token {
 		}
 
 		l.readChar()
-		return NewToken(lit.toStrValue())
+		return NewToken(lit.ToStrValue())
 	}
 
 	// Check if it's number

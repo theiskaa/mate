@@ -50,15 +50,14 @@ var tokenTypeToStr = map[TokenType]string{
 	RPAREN:  ")",
 }
 
-
 // IsSubExp checks if token is a sub expression token.
 func (t *Token) IsSubExp() bool {
-	return len(t.SubTokens) == 0
+	return len(t.SubTokens) > 0
 }
 
 // toStrValue is inherited method for TokenType.
 // converts a token type variable to string value.
-func (t *TokenType) toStrValue() string {
+func (t *TokenType) ToStrValue() string {
 	return tokenTypeToStr[*t]
 }
 
