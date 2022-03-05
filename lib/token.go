@@ -55,6 +55,11 @@ func (t *Token) IsSubExp() bool {
 	return len(t.SubTokens) > 0
 }
 
+// IsIllegal checks if token is a sub expression token.
+func (t *Token) IsIllegal() bool {
+	return t.Type == ILLEGAL
+}
+
 // IsNum checks if token is a number token or not.
 func (t *Token) IsNum() bool {
 	return t.Type == NUMBER

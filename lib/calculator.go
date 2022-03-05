@@ -1,10 +1,14 @@
 package lib
 
+import (
+	"mate/pkg"
+	"strconv"
+)
+
 // Calculator is token-compiler structure model.
 // Takes a token array which will be compiled to [float32] answer.
 type Calculator struct {
-	Input        []Token
-	ReadingToken Token
+	Input []Token
 }
 
 // NewCalculator creates a new calculator structure.
@@ -13,28 +17,75 @@ func NewCalculator(input []Token) Calculator {
 	return Calculator{Input: input}
 }
 
-// Calculate, is main token-to-number compiler of application.
-// Loops through [c.Input] and calculates final answer.
-// If there is an error, answer will be "ZERO", and error would be non-nil.
+// Calculate, is token-to-number compiler of application.
+// Loops through input and returns final answer.
+// If there is an error, answer will be "ZERO", and error would be provided.
+// The input argument can be passed from function arguments, if it's not provided
+// from arguments, function uses default input of Calculator ──▶ [l.Input]
 //
 //  TODO: Add visual explanation.
 //
-func (c *Calculator) Calculate() (float32, error) {
+func (c *Calculator) Calculate(input []Token) (float32, error) {
+	var res float32
 
-	// TODO: Add functionality.
+	var in []Token
+	if input != nil {
+		in = input
+	} else {
+		in = c.Input
+	}
 
-	return 0.42, nil
-}
+	// In case of having one but sub-expression token
+	// We have to use its sub tokens to calculate.
+	if len(in) == 1 && in[0].IsSubExp() {
+		return c.Calculate(in[0].SubTokens)
+	}
 
-// CalculateSubExp, is a sub token-to-number compiler.
-// Which mainly used to calculate "only" sub expression tokens.
-// It'll check for sub-expression input from arguments, if it's nil
-// function continues calculating a sub-expression from structure -> [l.ReadingToken].
-func (c *Calculator) CalculateSubExp() (float32, error) {
+	for i, t := range in {
+		var operation TokenType
+		var x, y float32 = res, 0
 
-	// TODO: Add CalculateSubExp functionality.
+		// Check token validness.
+		if t.IsIllegal() {
+			err := []interface{}{i, t.Type, t.Literal, t.SubTokens}
+			return 0, pkg.IllegalTokenError(err)
+		}
 
-	return 0.42, nil
+		// Fill Y with number.
+		if t.IsNum() {
+			yRes, yErr := strconv.ParseFloat(t.Literal, 32)
+			if yErr != nil {
+				return 0, yErr
+			}
+
+			y = float32(yRes)
+		} else if t.IsSubExp() {
+			// Calculate inside portion of sub-expression.
+			yRes, yErr := c.Calculate(t.SubTokens)
+			if yErr != nil {
+				return 0, yErr
+			}
+
+			y = float32(yRes)
+		}
+
+		if t.IsPlusOrMinus() || t.IsProdOrDiv() {
+			operation = t.Type
+		} else {
+			// Auto append multiplication ◀╮
+			// if there is no sign between │ two number token.
+			//    ╭──────────────────╭─────╯
+			// ╭─ ▼ ───────╮     ╭── ▼ ─────────╮
+			// │ 4(2 + 10) │ ──▶ │ 4 • (2 + 10) │
+			// ╰───────────╯     ╰──────────────╯
+			operation = PRODUCT
+		}
+
+		// Update res by current X/Y/O.
+		res = c.ExecuteOperation(x, y, operation)
+	}
+
+	return res, nil
 }
 
 // ExecuteOperation, executes operation for X and Y numbers by appropriate operation type.
