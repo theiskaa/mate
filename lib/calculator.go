@@ -7,6 +7,12 @@ type Calculator struct {
 	ReadingToken Token
 }
 
+// NewCalculator creates a new calculator structure.
+// It's default way of creating calculators in the mate.
+func NewCalculator(input []Token) Calculator {
+	return Calculator{Input: input}
+}
+
 // Calculate, is main token-to-number compiler of application.
 // Loops through [c.Input] and calculates final answer.
 // If there is an error, answer will be "ZERO", and error would be non-nil.
