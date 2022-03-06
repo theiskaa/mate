@@ -22,9 +22,15 @@ func NewCalculator(input []Token) Calculator {
 // If there is an error, answer will be "ZERO", and error would be provided.
 // The input argument can be passed from function arguments, if it's not provided
 // from arguments, function uses default input of Calculator ──▶ [l.Input]
+//  ╭────────╮ ╭───────────╮ ╭────────╮
+//  │ NUMBER │ │ OPERATION │ │ NUMBER │
+//  ╰────────╯ ╰───────────╯ ╰────────╯
+//       ╰───╮       │        ╭───╯
+//           ▼       ▼        ▼
+//           X  [+, -, *, /]  Y
 //
-//  TODO: Add visual explanation.
-//
+// For instance NUMBER(I) is 6, NUMBER(II) is 7,
+// and the operation is PRODUCT(Multiplication). Result of function would be ──▶ 6 * 7 = 42
 func (c *Calculator) Calculate(input []Token) (float32, error) {
 	var res float32
 
@@ -89,7 +95,7 @@ func (c *Calculator) Calculate(input []Token) (float32, error) {
 	return res, nil
 }
 
-// ExecuteOperation, executes operation for X and Y 
+// ExecuteOperation, executes operation for X and Y
 // numbers by appropriate operation type.
 //
 //  Example:

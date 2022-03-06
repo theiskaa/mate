@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestCalculate(t *testing.T) {
+func TestCalculatorsCalculate(t *testing.T) {
 	tests := []struct {
 		input, inArg  []lib.Token
 		expected      float32
