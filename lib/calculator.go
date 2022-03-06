@@ -41,7 +41,9 @@ func (c *Calculator) Calculate(input []Token) (float32, error) {
 		return c.Calculate(in[0].SubTokens)
 	}
 
-	for i, t := range in {
+	for i := 0; i <= len(in); i += 2 {
+		t := in[i]
+
 		var operation TokenType
 		var x, y float32 = res, 0
 
@@ -69,16 +71,15 @@ func (c *Calculator) Calculate(input []Token) (float32, error) {
 			y = float32(yRes)
 		}
 
-		if t.IsPlusOrMinus() || t.IsProdOrDiv() {
-			operation = t.Type
+		// At first loop, operation must to be PLUS.
+		// Because, res is zero and we have to
+		// add some value before starting working on it.
+		if i == 0 {
+			operation = PLUS
+		} else if in[i-1].IsPlusOrMinus() || in[i-1].IsProdOrDiv() {
+			operation = in[i-1].Type
 		} else {
-			// Auto append multiplication ◀╮
-			// if there is no sign between │ two number token.
-			//    ╭──────────────────╭─────╯
-			// ╭─ ▼ ───────╮     ╭── ▼ ─────────╮
-			// │ 4(2 + 10) │ ──▶ │ 4 • (2 + 10) │
-			// ╰───────────╯     ╰──────────────╯
-			operation = PRODUCT
+			return 0, pkg.NoOperation([]interface{}{x, y})
 		}
 
 		// Update res by current X/Y/O.
@@ -88,7 +89,8 @@ func (c *Calculator) Calculate(input []Token) (float32, error) {
 	return res, nil
 }
 
-// ExecuteOperation, executes operation for X and Y numbers by appropriate operation type.
+// ExecuteOperation, executes operation for X and Y 
+// numbers by appropriate operation type.
 //
 //  Example:
 //  ╭───╮        ╭───╮        ╭───────────╮

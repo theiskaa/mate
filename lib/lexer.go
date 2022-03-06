@@ -156,6 +156,17 @@ func (l *Lexer) GenerateToken() Token {
 func (l *Lexer) CombineTokens(tokens []Token) []Token {
 	var combinedTokens, subTokens []Token
 
+	/* TODO:  Add functionality that described down below diagram.
+
+	// Auto append multiplication ◀╮
+	// if there is no sign between │ two number token.
+	//    ╭──────────────────╭─────╯
+	// ╭─ ▼ ───────╮     ╭── ▼ ─────────╮
+	// │ 4(2 + 10) │ ──▶ │ 4 • (2 + 10) │
+	// ╰───────────╯     ╰──────────────╯
+
+	*/
+
 	for index, current := range tokens {
 		isNotExceed := index >= 0 && index < len(tokens)-1
 

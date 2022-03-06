@@ -37,6 +37,28 @@ func TestIsSubExp(t *testing.T) {
 	}
 }
 
+func TestIsIllegal(t *testing.T) {
+	tests := []struct {
+		token    lib.Token
+		expected bool
+	}{
+		{expected: true, token: lib.NewToken("&")},
+		{expected: true, token: lib.NewToken("#")},
+		{expected: false, token: lib.NewToken("*")},
+		{expected: false, token: lib.NewToken("-")},
+		{expected: false, token: lib.NewToken("+")},
+		{expected: false, token: lib.NewToken(":")},
+	}
+
+	for _, td := range tests {
+		got := td.token.IsIllegal()
+
+		if got != td.expected {
+			t.Errorf("Sum was different of IsIllegal | Want: %v, Got: %v", td.expected, got)
+		}
+	}
+}
+
 func TestIsNum(t *testing.T) {
 	tests := []struct {
 		token    lib.Token

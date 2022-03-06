@@ -5,6 +5,117 @@ import (
 	"testing"
 )
 
+func TestCalculate(t *testing.T) {
+	tests := []struct {
+		input, inArg  []lib.Token
+		expected      float32
+		expectedIsErr bool
+	}{
+		{
+			expected: -7.5,
+			input: []lib.Token{
+				{Type: lib.NUMBER, Literal: "2"},
+				{Type: lib.PLUS, Literal: "+"},
+				{Type: lib.NUMBER, Literal: "-4.5"},
+				{Type: lib.MINUS, Literal: "-"},
+				{Type: lib.NUMBER, Literal: "5"},
+			},
+		},
+		{
+			expected: -18,
+			inArg: []lib.Token{
+				{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+					{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+						{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+							{Type: lib.NUMBER, Literal: "4"},
+							{Type: lib.PRODUCT, Literal: "*"},
+							{Type: lib.NUMBER, Literal: "5"},
+						}},
+						{Type: lib.MINUS, Literal: "-"},
+						{Type: lib.NUMBER, Literal: "5"},
+					}},
+					{Type: lib.PRODUCT, Literal: "*"},
+					{Type: lib.NUMBER, Literal: "-2"},
+				}},
+				{Type: lib.PLUS, Literal: "+"},
+				{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+					{Type: lib.NUMBER, Literal: "24"},
+					{Type: lib.DIVIDE, Literal: "/"},
+					{Type: lib.NUMBER, Literal: "2"},
+				}},
+			},
+		},
+		{
+			expected: 3,
+			inArg: []lib.Token{
+				{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+					{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+						{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+							{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+								{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+									{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+										{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+											{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+												{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+													{Type: lib.NUMBER, Literal: "12"},
+													{Type: lib.PRODUCT, Literal: "*"},
+													{Type: lib.NUMBER, Literal: "0.5"},
+												}},
+												{Type: lib.DIVIDE, Literal: ":"},
+												{Type: lib.NUMBER, Literal: "2"},
+											}},
+										}},
+									}},
+								}},
+							}},
+						}},
+					}},
+				}},
+			},
+		},
+		{
+			expected:      0,
+			expectedIsErr: true,
+			input: []lib.Token{
+				{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+					{Type: lib.NUMBER, Literal: "21"},
+					{Type: lib.PLUS, Literal: "+"},
+					{Type: lib.NUMBER, Literal: "21"},
+				}},
+				{Type: lib.NUMBER, Literal: "2"},
+				{Type: lib.PLUS, Literal: "-"},
+				{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+					{Type: lib.NUMBER, Literal: "21"},
+					{Type: lib.PRODUCT, Literal: "*"},
+					{Type: lib.NUMBER, Literal: "2"},
+				}},
+			},
+		},
+		{
+			expected:      0,
+			expectedIsErr: true,
+			inArg: []lib.Token{
+				{Type: lib.NUMBER, Literal: "2"},
+				{Type: lib.PLUS, Literal: "-"},
+				{Type: lib.ILLEGAL},
+			},
+		},
+	}
+
+	for _, td := range tests {
+		c := lib.NewCalculator(td.input)
+		got, gotErr := c.Calculate(td.inArg)
+
+		if got != td.expected {
+			t.Errorf("Sum was different of Calculate. Want: %v | Got: %v", td.expected, got)
+		}
+
+		if td.expectedIsErr == (gotErr == nil) {
+			t.Errorf("Sum was different of Calculate's error | Got: %v", gotErr)
+		}
+	}
+}
+
 func TestExecuteOperation(t *testing.T) {
 	type arguments struct {
 		x, y      float32
