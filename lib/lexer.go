@@ -164,15 +164,12 @@ func (l *Lexer) CombineTokens(tokens []Token) []Token {
 	// ╭─ ▼ ───────╮     ╭── ▼ ─────────╮
 	// │ 4(2 + 10) │ ──▶ │ 4 • (2 + 10) │
 	// ╰───────────╯     ╰──────────────╯
-
 	*/
 
+	// Combine products/divisions/parentheses as sub-expression.
 	for index, current := range tokens {
-		isNotExceed := index >= 0 && index < len(tokens)-1
-
-		// Generate next token, if it's not last loop.
-		var next Token
-		if isNotExceed {
+		next := NewToken("")
+		if index < len(tokens)-1 {
 			next = tokens[index+1]
 		}
 

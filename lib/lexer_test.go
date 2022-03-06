@@ -8,7 +8,7 @@ import (
 // compareTokens is a simple recursive function used to check two token lists equality.
 func compareTokens(a, b []lib.Token, t *testing.T) {
 	if len(a) != len(b) {
-		t.Errorf("The length of Sum of Lex was different, Want: %v, Got: %v", len(a), len(b))
+		t.Errorf("The length of Sum was different, Want: %v, Got: %v", len(a), len(b))
 		return
 	}
 
@@ -17,7 +17,7 @@ func compareTokens(a, b []lib.Token, t *testing.T) {
 		expected := b[i]
 
 		if got.Type != expected.Type || got.Literal != expected.Literal {
-			t.Errorf("Sum of Lex was different at index %v, Want: %v, Got: %v", i, expected, got)
+			t.Errorf("Sum was different at index %v, Want: %v, Got: %v", i, expected, got)
 		}
 
 		compareTokens(got.SubTokens, expected.SubTokens, t)
@@ -123,7 +123,8 @@ func TestGenerateToken(t *testing.T) {
 	}
 
 	for _, td := range tests {
-		lexer := lib.NewLexer(string(td.input))
+		in := "   "
+		lexer := lib.NewLexer(in)
 
 		// Set input to the lexer's char.
 		lexer.Char = byte(td.input)
@@ -132,5 +133,74 @@ func TestGenerateToken(t *testing.T) {
 		if got.Type != td.expected.Type || got.Literal != td.expected.Literal {
 			t.Errorf("Sum of GenerateToken was different, Want: %v, Got: %v", td.expected, got)
 		}
+	}
+}
+
+func TestCombineTokens(t *testing.T) {
+	tests := []struct {
+		input    []lib.Token
+		expected []lib.Token
+	}{
+		{
+			input: []lib.Token{
+				{Type: lib.NUMBER, Literal: "24"},
+				{Type: lib.DIVIDE, Literal: "/"},
+				{Type: lib.NUMBER, Literal: "4"},
+				{Type: lib.PLUS, Literal: "+"},
+				{Type: lib.NUMBER, Literal: "2"},
+			},
+			expected: []lib.Token{
+				{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+					{Type: lib.NUMBER, Literal: "24"},
+					{Type: lib.DIVIDE, Literal: "/"},
+					{Type: lib.NUMBER, Literal: "4"},
+				}},
+				{Type: lib.PLUS, Literal: "+"},
+				{Type: lib.NUMBER, Literal: "2"},
+			},
+		},
+		{
+			input: []lib.Token{
+				{Type: lib.NUMBER, Literal: "4"},
+				{Type: lib.PRODUCT, Literal: "*"},
+				{Type: lib.NUMBER, Literal: "5"},
+				{Type: lib.MINUS, Literal: "-"},
+				{Type: lib.NUMBER, Literal: "5"},
+				{Type: lib.PRODUCT, Literal: "*"},
+				{Type: lib.NUMBER, Literal: "-2"},
+				{Type: lib.PLUS, Literal: "+"},
+				{Type: lib.NUMBER, Literal: "24"},
+				{Type: lib.DIVIDE, Literal: "/"},
+				{Type: lib.NUMBER, Literal: "2"},
+			},
+			expected: []lib.Token{
+				{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+					{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+						{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+							{Type: lib.NUMBER, Literal: "4"},
+							{Type: lib.PRODUCT, Literal: "*"},
+							{Type: lib.NUMBER, Literal: "5"},
+						}},
+						{Type: lib.MINUS, Literal: "-"},
+						{Type: lib.NUMBER, Literal: "5"},
+					}},
+					{Type: lib.PRODUCT, Literal: "*"},
+					{Type: lib.NUMBER, Literal: "-2"},
+				}},
+				{Type: lib.PLUS, Literal: "+"},
+				{Type: lib.SUB_EXP, SubTokens: []lib.Token{
+					{Type: lib.NUMBER, Literal: "24"},
+					{Type: lib.DIVIDE, Literal: "/"},
+					{Type: lib.NUMBER, Literal: "2"},
+				}},
+			},
+		},
+	}
+
+	for _, td := range tests {
+		lexer := lib.NewLexer("6 * 7")
+
+		got := lexer.CombineTokens(td.input)
+		compareTokens(got, td.expected, t)
 	}
 }
