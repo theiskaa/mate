@@ -119,7 +119,7 @@ func (l *Lexer) GenerateToken() Token {
 	}
 
 	// Check if it's number
-	if pkg.IsNumber(string(l.Char)) {
+	if pkg.IsNumber(string(l.Char)) || pkg.IsPoint(string(l.Char)) {
 		num := l.readNumber()
 		return NewToken(num)
 	}
