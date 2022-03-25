@@ -126,6 +126,72 @@ func TestIsProdOrDiv(t *testing.T) {
 	}
 }
 
+func TestIsParen(t *testing.T) {
+	tests := []struct {
+		token    lib.Token
+		expected bool
+	}{
+		{expected: true, token: lib.NewToken(")")},
+		{expected: true, token: lib.NewToken("(")},
+		{expected: false, token: lib.NewToken("-6")},
+		{expected: false, token: lib.NewToken("+42")},
+		{expected: false, token: lib.NewToken("-")},
+		{expected: false, token: lib.NewToken("+")},
+	}
+
+	for _, td := range tests {
+		got := td.token.IsParen()
+
+		if got != td.expected {
+			t.Errorf("Sum was different of IsParen | Want: %v, Got: %v", td.expected, got)
+		}
+	}
+}
+
+func TestIsLParen(t *testing.T) {
+	tests := []struct {
+		token    lib.Token
+		expected bool
+	}{
+		{expected: true, token: lib.NewToken("(")},
+		{expected: false, token: lib.NewToken(")")},
+		{expected: false, token: lib.NewToken("-6")},
+		{expected: false, token: lib.NewToken("+42")},
+		{expected: false, token: lib.NewToken("-")},
+		{expected: false, token: lib.NewToken("+")},
+	}
+
+	for _, td := range tests {
+		got := td.token.IsLParen()
+
+		if got != td.expected {
+			t.Errorf("Sum was different of IsLParen | Want: %v, Got: %v", td.expected, got)
+		}
+	}
+}
+
+func TestIsRParen(t *testing.T) {
+	tests := []struct {
+		token    lib.Token
+		expected bool
+	}{
+		{expected: true, token: lib.NewToken(")")},
+		{expected: false, token: lib.NewToken("(")},
+		{expected: false, token: lib.NewToken("-6")},
+		{expected: false, token: lib.NewToken("+42")},
+		{expected: false, token: lib.NewToken("-")},
+		{expected: false, token: lib.NewToken("+")},
+	}
+
+	for _, td := range tests {
+		got := td.token.IsRParen()
+
+		if got != td.expected {
+			t.Errorf("Sum was different of IsRParen | Want: %v, Got: %v", td.expected, got)
+		}
+	}
+}
+
 func TestToStrValue(t *testing.T) {
 	tests := []struct {
 		token    lib.TokenType

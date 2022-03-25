@@ -65,6 +65,11 @@ func (t *Token) IsNum() bool {
 	return t.Type == NUMBER
 }
 
+// IsOperationSign checks if token is a Operation{+, -, etc} token or not.
+func (t *Token) IsOperationSign() bool {
+	return t.IsPlusOrMinus() || t.IsProdOrDiv()
+}
+
 // IsPlusOrMinus checks if token is a PLUS token or MINUS token.
 func (t *Token) IsPlusOrMinus() bool {
 	return t.Type == PLUS || t.Type == MINUS
@@ -73,6 +78,20 @@ func (t *Token) IsPlusOrMinus() bool {
 // IsProdOrDiv checks if token is a PRODUCT token or DIVIDE token.
 func (t *Token) IsProdOrDiv() bool {
 	return t.Type == PRODUCT || t.Type == DIVIDE
+}
+
+func (t *Token) IsParen() bool {
+	return t.IsLParen() || t.IsRParen()
+}
+
+// IsLParen checks if token is a left parentheses token.
+func (t *Token) IsLParen() bool {
+	return t.Type == LPAREN
+}
+
+// IsRParen checks if token is a right parentheses token.
+func (t *Token) IsRParen() bool {
+	return t.Type == RPAREN
 }
 
 // toStrValue is inherited method for TokenType.

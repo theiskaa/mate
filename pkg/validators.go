@@ -7,6 +7,12 @@ var (
 	numRegExp = regexp.MustCompile(`\d`)
 )
 
+// IsOperationSign checks if given char is operation sign or not.
+// Operation signs are - "plus", "minus", "product", "division" etc.
+func IsOperationSign(ch string) bool {
+	return IsPlusOrMinus(ch) || IsProdOrDiv(ch)
+}
+
 // IsNumber checks if given char is digit number or not.
 func IsNumber(ch string) bool {
 	return numRegExp.MatchString(ch)

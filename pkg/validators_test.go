@@ -5,6 +5,30 @@ import (
 	"testing"
 )
 
+func TestIsOperationSign(t *testing.T) {
+	tests := []struct {
+		char     string
+		expected bool
+	}{
+		{char: "-", expected: true},
+		{char: "+", expected: true},
+		{char: "*", expected: true},
+		{char: "/", expected: true},
+		{char: "8", expected: false},
+		{char: "9", expected: false},
+		{char: "-10", expected: false},
+		{char: "+11", expected: false},
+	}
+
+	for _, td := range tests {
+		got := pkg.IsOperationSign(td.char)
+
+		if got != td.expected {
+			t.Errorf("Sum of IsOperationSign was different, Want: %v, Got: %v", td.expected, got)
+		}
+	}
+}
+
 func TestIsNumber(t *testing.T) {
 	tests := []struct {
 		char     string

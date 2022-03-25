@@ -5,9 +5,14 @@ package repl
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mate/lib"
+	"strings"
+
+	"github.com/fatih/color"
 )
 
 // Default strings of repl.
@@ -27,8 +32,8 @@ func Start(in io.Reader, out io.Writer) {
 		}
 
 		input := scanner.Text()
-		if len(input) == 0 {
-			fmt.Println("--- Empty Input ---")
+		if len(strings.Trim(input, " ")) == 0 {
+			color.New(color.FgRed).Println("--- Empty Input ---")
 			continue
 		}
 
@@ -36,22 +41,28 @@ func Start(in io.Reader, out io.Writer) {
 		lexer := lib.NewLexer(input)
 		tokens := lexer.Lex()
 
-		// Calculate result from tokens.
-		calculator := lib.NewCalculator(tokens)
-		result, err := calculator.Calculate(tokens)
+		for _, t := range tokens {
+			tj, err := json.MarshalIndent(t, "", "\t")
+			if err != nil {
+				log.Println("[X] > ", err)
+				return
+			}
 
-		fmt.Printf(
-			`
-Result:  %v
-Error:  %v
-				`,
-			result, err,
-		)
+			log.Println(string(tj))
+		}
 
 		fmt.Println(LINE)
 
-		for _, t := range tokens {
-			fmt.Printf("%+v\n", t)
+		// Define calculator
+		calculator := lib.NewCalculator(tokens)
+
+		// Calculate result from tokens.
+		// calculator := lib.NewCalculator(tokens)
+		result, err := calculator.Calculate(tokens)
+		if err != nil {
+			color.New(color.FgRed).Println("• [X] >", result)
+		} else {
+			color.New(color.FgGreen).Println("• Result >", result)
 		}
 
 		fmt.Printf("\n")

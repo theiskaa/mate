@@ -1,7 +1,7 @@
 package main
 
 import (
-	repl "mate/repl"
+	"mate/repl"
 	"os"
 )
 

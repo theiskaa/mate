@@ -99,7 +99,8 @@ func (l *Lexer) GenerateToken() Token {
 	l.skipWhitespace()
 
 	// Check if it's supported token or operation sign.
-	if lit, isSign := strToTokenType[string(l.Char)]; isSign {
+	lit, isSign := strToTokenType[string(l.Char)]
+	if isSign && pkg.IsOperationSign(string(l.Char)) {
 		// Boolean to determine if that negative number could be created.
 		isFreeFromNum := !pkg.IsNumber(l.peekCharBack())
 
@@ -157,7 +158,6 @@ func (l *Lexer) CombineTokens(tokens []Token) []Token {
 	var combinedTokens, subTokens []Token
 
 	/* TODO:  Add functionality that described down below diagram.
-
 	// Auto append multiplication ◀╮
 	// if there is no sign between │ two number token.
 	//    ╭──────────────────╭─────╯
