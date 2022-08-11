@@ -1,3 +1,7 @@
+///
+/// A interface for custom char-type-checking utility methods.
+/// Has a various methods (checkers) based on [&str].
+///
 pub trait ChUtils<'a> {
     /// Checks if the given [&self] object is number or not.
     fn is_number(&'a self) -> bool;
