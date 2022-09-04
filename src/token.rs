@@ -1,5 +1,6 @@
 use crate::utils::ChUtils;
 
+#[derive(Clone)]
 pub enum TokenType {
     NUMBER,
     ILLEGAL,
@@ -12,15 +13,16 @@ pub enum TokenType {
 }
 
 /// A small-block representing structure of lexer's input.
-pub struct Token<'a> {
-    typ: TokenType,
-    literal: &'a str,
+#[derive(Clone)]
+pub struct Token {
+    pub typ: TokenType,
+    pub literal: String,
 }
 
-impl<'a> Token<'a> {
-    /// Create a new token model with only literal.
+impl Token {
+    /// Create a new token model from a literal.
     /// The type is decided automatically by checking it.
-    pub fn new(literal: &'a str) -> Self {
+    pub fn from(mut literal: String) -> Self {
         let typ: TokenType;
 
         if literal.is_number() {
@@ -37,6 +39,17 @@ impl<'a> Token<'a> {
             }
         }
 
+        // Clear the white-spaces from literal.
+        literal.retain(|c| !c.is_whitespace());
+
         return Self { typ, literal };
+    }
+
+    /// Checks if pointed token's type is illegal or not.
+    pub fn is_illegal(&self) -> bool {
+        match self.typ {
+            TokenType::ILLEGAL => true,
+            _ => false,
+        }
     }
 }

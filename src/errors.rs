@@ -4,8 +4,11 @@ pub struct Error<'a> {
 }
 
 impl<'a> Error<'a> {
-    /// A alias for creating [Error] models.
     pub fn new(msg: &'a str) -> Self {
-        return Self { msg };
+        Self { msg }
+    }
+
+    pub fn to_string(&self) -> String {
+        self.msg.to_string()
     }
 }

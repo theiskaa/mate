@@ -1,27 +1,29 @@
+use regex::Regex;
+
 ///
 /// A interface for custom char-type-checking utility methods.
 /// Has a various methods (checkers) based on [&str].
 ///
-pub trait ChUtils<'a> {
+pub trait ChUtils {
     /// Checks if the given [&self] object is number or not.
-    fn is_number(&'a self) -> bool;
+    fn is_number(&self) -> bool;
 
     /// Checks if the given [&self] object is point(comma, dot) or not.
     ///
     /// Like <.> in 3.14 or <,> in 3,14
-    fn is_point(&'a self) -> bool;
+    fn is_point(&self) -> bool;
 
     /// Checks if the given [&self] object is plus sign or minus sign.
     ///
     /// Plus signs   --> <+>
     /// Minus signs  --> <->
-    fn is_plus_or_minus(&'a self) -> bool;
+    fn is_plus_or_minus(&self) -> bool;
 
     /// Checks if the given [&self] object is division sign or multiplication sign.
     ///
     /// Division signs        --> <:> and </>
     /// Multiplication signs  --> <*> and <•>
-    fn is_div_or_prod(&'a self) -> bool;
+    fn is_div_or_prod(&self) -> bool;
 
     /// A function that combines [is_plus_or_minus] and [is_div_or_prod].
     /// So, it checks if [&self] object is operation sign or not.
@@ -30,21 +32,12 @@ pub trait ChUtils<'a> {
     /// Minus signs           --> <->
     /// Division signs        --> <:> and </>
     /// Multiplication signs  --> <*> and <•>
-    fn is_operation_sign(&'a self) -> bool;
+    fn is_operation_sign(&self) -> bool;
 }
 
-impl<'a> ChUtils<'a> for &'a str {
-    // TODO: Check with regular expression matchers.
+impl ChUtils for String {
     fn is_number(&self) -> bool {
-        for c in self.trim().chars() {
-            if c.is_numeric() {
-                continue;
-            }
-
-            return false;
-        }
-
-        true
+        Regex::new("[[:digit:]]").unwrap().is_match(self)
     }
 
     fn is_point(&self) -> bool {
