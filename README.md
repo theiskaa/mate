@@ -32,9 +32,9 @@ final bool isInvalid = mate.isInvalidExp(exp);
 
 ---
 
-> **Check [official example](https://github.com/theiskaa/mate/blob/main/example/main.dart) of Mate**
+> **Check [official example](https://github.com/theiskaa/mate/blob/dart/example/main.dart) of Mate**
 
-> **Check [official UI implementation example](https://github.com/theiskaa/mate/blob/main/example/app.dart) of Mate**
+> **Check [official UI implementation example](https://github.com/theiskaa/mate/blob/dart/example/app.dart) of Mate**
 
 ---
 
