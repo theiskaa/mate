@@ -46,7 +46,7 @@ use substring::Substring;
 //     │                                   │
 //     ╰───────────────────────────────────╯
 //
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Lexer<'a> {
     input: &'a str,               // Expression input.
     examination_char: Cell<char>, // Current char under examination.
@@ -289,4 +289,62 @@ impl<'a> Lexer<'a> {
             }
         }
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn new() {
+        let test_data: HashMap<&str, Result<Lexer, Error>> = HashMap::from([
+            ("", Err(Error::new("Cannot lex an empty input"))),
+            (
+                "4 + 2",
+                Ok(Lexer {
+                    input: "4 + 2",
+                    examination_char: Cell::new('4'),
+                    position: Cell::from(0),
+                    read_position: Cell::from(1),
+                }),
+            ),
+        ]);
+
+        for (input, expected) in test_data {
+            let result: Result<Lexer, Error> = Lexer::new(input);
+            assert_eq!(result, expected);
+        }
+    }
+
+    #[test]
+    fn lex() {
+        let test_data: HashMap<&str, Result<Vec<Token>, Error>> = HashMap::from([
+            ("", Err(Error::new("Cannot lex an empty input"))),
+            (
+                "-25 + 5",
+                Ok(vec![
+                    Token::from(String::from("-25")),
+                    Token::from(String::from("+")),
+                    Token::from(String::from("5")),
+                ]),
+            ),
+            (
+                "- - 2 + - 5",
+                Ok(vec![
+                    Token::from(String::from("-")),
+                    Token::from(String::from("-2")),
+                    Token::from(String::from("+")),
+                    Token::from(String::from("-5")),
+                ]),
+            ),
+        ]);
+
+        for (input, expected) in test_data {
+            let result: Result<Vec<Token>, Error> = Lexer::lex(input);
+            assert_eq!(result, expected);
+        }
+    }
+
+    // TODO: should add tests for private functions also.
 }
