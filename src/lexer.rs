@@ -2,50 +2,50 @@ use crate::{errors::Error, token::Token, utils::ChUtils};
 use std::cell::Cell;
 use substring::Substring;
 
-/// Lexer is the main lexical converter of the mate.
-/// It converts given string Input(expression) to an array of tokens.
-///
-/// > VISUAL EXAMPLE OF LEXER
-///
-///      USER INPUT
-///     ╭──────────────────────────╮
-///     │ (4 * 5 - 5) * 2 + 24 / 2 │
-///     ╰──────────────────────────╯
-///
-///      OUTPUT OF THE LEXER
-///     ╭───────────────────────────────────╮
-///     │                                   │    ╭─▶ First Sub Expression
-///     │   ╭───────────────────────────╮   │    │
-///     │   │                           │────────╯
-///     │   │   ╭───────────────────╮   │   │
-///     │   │   │                   │─╮ │   │
-///     │   │   │   ╭───────────╮   │ │ │   │
-///     │   │   │   │ NUMBER(4) │   │ ╰────────────▶ Second Sub Expression
-///     │   │   │   │ PRODUCT   │─╮ │   │   │        Which belongs to first sub expression.
-///     │   │   │   │ NUMBER(5) │ │ │   │   │
-///     │   │   │   ╰───────────╯ ╰──────────────╮
-///     │   │   │    MINUS          │   │   │    │
-///     │   │   │    NUMBER(5)      │   │   │    ╰─▶ Third Sub Expression
-///     │   │   │                   │   │   │        Which belongs to second sub expression.
-///     │   │   ╰───────────────────╯   │   │
-///     │   │                           │   │
-///     │   │    PRODUCT                │   │
-///     │   │    NUMBER(2)              │   │
-///     │   │                           │   │
-///     │   ╰───────────────────────────╯   │
-///     │                                   │
-///     │    PLUS                           │
-///     │                                   │
-///     │   ╭──────────────────────────╮    │    ╭─▶ Fourth Sub Expression
-///     │   │                          │    │    │
-///     │   │  NUMBER(24)              │    │    │
-///     │   │  DIVIDE                  │─────────╯
-///     │   │  NUMBER(2)               │    │
-///     │   │                          │    │
-///     │   ╰──────────────────────────╯    │
-///     │                                   │
-///     ╰───────────────────────────────────╯
-///
+// Lexer is the main lexical converter of the mate.
+// It converts given string Input(expression) to an array of tokens.
+//
+// > VISUAL EXAMPLE OF LEXER
+//
+//      USER INPUT
+//     ╭──────────────────────────╮
+//     │ (4 * 5 - 5) * 2 + 24 / 2 │
+//     ╰──────────────────────────╯
+//
+//      OUTPUT OF THE LEXER
+//     ╭───────────────────────────────────╮
+//     │                                   │    ╭─▶ First Sub Expression
+//     │   ╭───────────────────────────╮   │    │
+//     │   │                           │────────╯
+//     │   │   ╭───────────────────╮   │   │
+//     │   │   │                   │─╮ │   │
+//     │   │   │   ╭───────────╮   │ │ │   │
+//     │   │   │   │ NUMBER(4) │   │ ╰────────────▶ Second Sub Expression
+//     │   │   │   │ PRODUCT   │─╮ │   │   │        Which belongs to first sub expression.
+//     │   │   │   │ NUMBER(5) │ │ │   │   │
+//     │   │   │   ╰───────────╯ ╰──────────────╮
+//     │   │   │    MINUS          │   │   │    │
+//     │   │   │    NUMBER(5)      │   │   │    ╰─▶ Third Sub Expression
+//     │   │   │                   │   │   │        Which belongs to second sub expression.
+//     │   │   ╰───────────────────╯   │   │
+//     │   │                           │   │
+//     │   │    PRODUCT                │   │
+//     │   │    NUMBER(2)              │   │
+//     │   │                           │   │
+//     │   ╰───────────────────────────╯   │
+//     │                                   │
+//     │    PLUS                           │
+//     │                                   │
+//     │   ╭──────────────────────────╮    │    ╭─▶ Fourth Sub Expression
+//     │   │                          │    │    │
+//     │   │  NUMBER(24)              │    │    │
+//     │   │  DIVIDE                  │─────────╯
+//     │   │  NUMBER(2)               │    │
+//     │   │                          │    │
+//     │   ╰──────────────────────────╯    │
+//     │                                   │
+//     ╰───────────────────────────────────╯
+//
 #[derive(Clone)]
 pub struct Lexer<'a> {
     input: &'a str,               // Expression input.
@@ -55,8 +55,8 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    /// Creates a new Lexer object with given input.
-    /// Basically used at [Lexer::lex] function.
+    // Creates a new Lexer object with given input.
+    // Basically used at [Lexer::lex] function.
     fn new(input: &'a str) -> Result<Lexer, Error> {
         if input.len() < 1 {
             return Err(Error::new("Cannot lex an empty input"));
@@ -70,10 +70,10 @@ impl<'a> Lexer<'a> {
         })
     }
 
-    /// Loops through the [self.input], converts each [char] to an understandable token
-    /// variable.
-    ///
-    /// As a result we'd got a list of tokens, which will be used to calculate.
+    // Loops through the [self.input], converts each [char] to an understandable token
+    // variable.
+    //
+    // As a result we'd got a list of tokens, which will be used to calculate.
     pub fn lex(input: &'a str) -> Result<Vec<Token>, Error> {
         let lexer: Lexer = match Lexer::new(input) {
             Ok(l) => l,
@@ -94,20 +94,20 @@ impl<'a> Lexer<'a> {
         Ok(tokens)
     }
 
-    /// Converts byte-character to token-structure.
-    /// Mainly used to generate 1D(first-party) tokens in [`lex`] method.
-    ///
-    ///         ╭─────────────╮ In second part of token generation, white(empty) spaces are auto-skipped
-    ///  ╭──────│───────────╮ │ by [skip_whitespace] method. And generate_token checks: {if that character is sign or not},
-    ///  │ 422  +  6  *  7  │ │ if it's, it firstly reads that character by [read_char].
-    ///  ╰──│───────────────╯ ╰───▶ And then creates new token by automatically filling token data.
-    ///     │
-    ///     │ In genesis, [`self.examination_char`] would be "4", and [generate_token] has to determine
-    ///     │ "4" can be not single-digit, it needs to reed full number not only "4".
-    ///     ╰───▶ So, [read_number] method will be used to read and return final number.
-    ///
-    ///   ... and so on ...
-    ///
+    // Converts byte-character to token-structure.
+    // Mainly used to generate 1D(first-party) tokens in [`lex`] method.
+    //
+    //         ╭─────────────╮ In second part of token generation, white(empty) spaces are auto-skipped
+    //  ╭──────│───────────╮ │ by [skip_whitespace] method. And generate_token checks: {if that character is sign or not},
+    //  │ 422  +  6  *  7  │ │ if it's, it firstly reads that character by [read_char].
+    //  ╰──│───────────────╯ ╰───▶ And then creates new token by automatically filling token data.
+    //     │
+    //     │ In genesis, [`self.examination_char`] would be "4", and [generate_token] has to determine
+    //     │ "4" can be not single-digit, it needs to reed full number not only "4".
+    //     ╰───▶ So, [read_number] method will be used to read and return final number.
+    //
+    //   ... and so on ...
+    //
     fn generate_token(&self) -> Option<Result<Token, Error<'a>>> {
         self.skip_whitespace();
 
@@ -143,8 +143,8 @@ impl<'a> Lexer<'a> {
         Some(Ok(Token::from(lit)))
     }
 
-    /// A [char] reading functionality, that also updates state of lexer.
-    /// Reads char and fills lexer object with read and manipulated data.
+    // A [char] reading functionality, that also updates state of lexer.
+    // Reads char and fills lexer object with read and manipulated data.
     fn read_char(&self) -> Option<char> {
         match self.input.chars().nth(self.read_position.get()) {
             Some(ch) => {
@@ -168,17 +168,17 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Collects from start to end of the string number,
-    /// and returns the full part of that number from input.
-    ///
-    ///  "-426.7" actually is a array of [char]s
-    ///  ╭────────────────────────────────────────────╮
-    ///  │ -426.7 ───▶ ['-', '4', '2', '6', '.', '7'] │
-    ///  ╰────────────────────────────────────────────╯
-    ///   To make computer understood that full number,
-    ///   We need to determine the start and end index
-    ///   of that full-number in rune array (from digit to digit).
-    ///
+    // Collects from start to end of the string number,
+    // and returns the full part of that number from input.
+    //
+    //  "-426.7" actually is a array of [char]s
+    //  ╭────────────────────────────────────────────╮
+    //  │ -426.7 ───▶ ['-', '4', '2', '6', '.', '7'] │
+    //  ╰────────────────────────────────────────────╯
+    //   To make computer understood that full number,
+    //   We need to determine the start and end index
+    //   of that full-number in rune array (from digit to digit).
+    //
     fn read_number(&self) -> Option<String> {
         let input: String = self.input.to_string();
         let start: usize = self.position.get();
@@ -213,7 +213,7 @@ impl<'a> Lexer<'a> {
         Some(input.substring(start, self.position.get()).to_string())
     }
 
-    /// Eats all type of empty(white) spaces.
+    // Eats all type of empty(white) spaces.
     fn skip_whitespace(&self) {
         let mut c: char = self.examination_char.get();
         while c == ' ' || c == '\t' || c == '\n' || c == '\r' {
@@ -224,10 +224,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Returns the next character by current position.
-    ///
-    /// [step] will be used to determine, how many steps we wanna go further.
-    /// As default (when you wanna go for one step next) you should make [step] <1>.
+    // Returns the next character by current position.
+    //
+    // [step] will be used to determine, how many steps we wanna go further.
+    // As default (when you wanna go for one step next) you should make [step] <1>.
     fn peek_char(&self, step: usize) -> Option<char> {
         let index: usize = self.position.get() + step;
         if index >= self.input.len() {
@@ -240,10 +240,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Returns the previous character by current position.
-    ///
-    /// [step] will be used to determine, how many steps we wanna go back.
-    /// As default (when you wanna go for one step back) you should make [step] <1>.
+    // Returns the previous character by current position.
+    //
+    // [step] will be used to determine, how many steps we wanna go back.
+    // As default (when you wanna go for one step back) you should make [step] <1>.
     fn peek_char_back(&self, step: usize) -> Option<char> {
         let bindex: i32 = self.position.get() as i32 - step as i32;
         if bindex < 0 {
@@ -256,10 +256,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Checks if the current positioned character is free from any number.
-    ///
-    /// If previous character of current position is white space, we should check for the next
-    /// previous one.
+    // Checks if the current positioned character is free from any number.
+    //
+    // If previous character of current position is white space, we should check for the next
+    // previous one.
     fn is_free_from_number(&self, step: usize) -> bool {
         match self.peek_char_back(step) {
             None => true, // if there is nothing in back, then it's free from number.
@@ -273,10 +273,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Checks for a negative or sign provided number in the next of our current position.
-    ///
-    /// If next character of current position is white space, we should check for the next
-    /// of current next.
+    // Checks for a negative or sign provided number in the next of our current position.
+    //
+    // If next character of current position is white space, we should check for the next
+    // of current next.
     fn next_is_number(&self, step: usize) -> bool {
         match self.peek_char(step) {
             None => false, // nothing != number

@@ -6,14 +6,14 @@ pub trait Monitor {
     fn to_string(&self) -> String;
 }
 
-/// A monitor debugger implementation for [Token].
+// A monitor debugger implementation for [Token].
 impl Monitor for Token {
     fn to_string(&self) -> String {
         String::from(self.typ.to_string() + " | " + self.literal.as_str())
     }
 }
 
-/// A monitor debugger implementation for [TokenType].
+// A monitor debugger implementation for [TokenType].
 impl Monitor for TokenType {
     fn to_string(&self) -> String {
         let data = match self {
@@ -26,5 +26,45 @@ impl Monitor for TokenType {
         };
 
         String::from(data)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn token_to_string() {
+        let test_data: HashMap<String, String> = HashMap::from([
+            (
+                Token::from(String::from("-25")).to_string(),
+                String::from("NUMBER | -25"),
+            ),
+            (
+                Token::from(String::from("/")).to_string(),
+                String::from("DIVIDE | /"),
+            ),
+        ]);
+
+        for (t, expected) in test_data {
+            assert_eq!(t, expected);
+        }
+    }
+
+    #[test]
+    fn token_type_to_string() {
+        let test_data: HashMap<String, &str> = HashMap::from([
+            (TokenType::NUMBER.to_string(), "NUMBER"),
+            (TokenType::ILLEGAL.to_string(), "ILLEGAL"),
+            (TokenType::PLUS.to_string(), "PLUS"),
+            (TokenType::MINUS.to_string(), "MINUS"),
+            (TokenType::PRODUCT.to_string(), "PRODUCT"),
+            (TokenType::DIVIDE.to_string(), "DIVIDE"),
+        ]);
+
+        for (tt, expected) in test_data {
+            assert_eq!(tt, expected);
+        }
     }
 }
