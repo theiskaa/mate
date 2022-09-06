@@ -1,3 +1,4 @@
+use crate::token::{Token, TokenType};
 use regex::Regex;
 
 //
@@ -60,6 +61,39 @@ impl ChUtils for String {
     }
 }
 
+impl ChUtils for Token {
+    fn is_number(&self) -> bool {
+        match self.typ {
+            TokenType::NUMBER => true,
+            _ => false,
+        }
+    }
+
+    fn is_point(&self) -> bool {
+        false // token has not point type at all.
+    }
+
+    fn is_plus_or_minus(&self) -> bool {
+        match self.typ {
+            TokenType::PLUS => true,
+            TokenType::MINUS => true,
+            _ => false,
+        }
+    }
+
+    fn is_div_or_prod(&self) -> bool {
+        match self.typ {
+            TokenType::PRODUCT => true,
+            TokenType::DIVIDE => true,
+            _ => false,
+        }
+    }
+
+    fn is_operation_sign(&self) -> bool {
+        self.is_plus_or_minus() || self.is_div_or_prod()
+    }
+}
+
 // Includes tests for only String implementation of [ChUtils].
 #[cfg(test)]
 mod tests {
@@ -79,6 +113,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_number(), expected);
+            assert_eq!(Token::from(target).is_number(), expected);
         }
     }
 
@@ -111,6 +146,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_plus_or_minus(), expected);
+            assert_eq!(Token::from(target).is_plus_or_minus(), expected);
         }
     }
 
@@ -128,6 +164,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_div_or_prod(), expected);
+            assert_eq!(Token::from(target).is_div_or_prod(), expected);
         }
     }
 
@@ -147,6 +184,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_operation_sign(), expected);
+            assert_eq!(Token::from(target).is_operation_sign(), expected);
         }
     }
 }
