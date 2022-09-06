@@ -9,7 +9,17 @@ pub trait Monitor {
 // A monitor debugger implementation for [Token].
 impl Monitor for Token {
     fn to_string(&self) -> String {
-        String::from(self.typ.to_string() + " | " + self.literal.as_str())
+        let mut lit: String;
+        if self.typ != TokenType::SUBEXP {
+            lit = self.literal.to_string();
+        } else {
+            lit = String::new();
+            for t in self.sub_tokens.iter().map(|t| t.to_string()) {
+                lit.push_str(format!("\n - {}", t).as_str())
+            }
+        }
+
+        String::from(self.typ.to_string() + " | " + lit.as_str())
     }
 }
 
@@ -19,6 +29,7 @@ impl Monitor for TokenType {
         let data = match self {
             TokenType::NUMBER => "NUMBER",
             TokenType::ILLEGAL => "ILLEGAL",
+            TokenType::SUBEXP => "SUB-EXPRESSION",
             TokenType::PLUS => "PLUS",
             TokenType::MINUS => "MINUS",
             TokenType::PRODUCT => "PRODUCT",
