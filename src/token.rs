@@ -4,6 +4,7 @@ use crate::utils::ChUtils;
 pub enum TokenType {
     NUMBER,
     ILLEGAL,
+    SUBEXP,
 
     // Operations
     PLUS,
@@ -17,12 +18,26 @@ pub enum TokenType {
 pub struct Token {
     pub typ: TokenType,
     pub literal: String,
+    pub sub_tokens: Vec<Token>,
 }
 
 impl Token {
     // Define a new Token value by providing all fields.
-    pub fn new(typ: TokenType, literal: String) -> Self {
-        Self { typ, literal }
+    pub fn new(typ: TokenType, literal: String, sub_tokens: Vec<Token>) -> Self {
+        Self {
+            typ,
+            literal,
+            sub_tokens,
+        }
+    }
+
+    // Create a new sub token model with just sub tokens.
+    pub fn new_sub(sub_tokens: Vec<Token>) -> Self {
+        Self {
+            typ: TokenType::SUBEXP,
+            literal: String::new(),
+            sub_tokens,
+        }
     }
 
     // Create a new token model from a literal.
@@ -47,7 +62,11 @@ impl Token {
         // Clear the white-spaces from literal.
         literal.retain(|c| !c.is_whitespace());
 
-        return Self { typ, literal };
+        return Self {
+            typ,
+            literal,
+            sub_tokens: Vec::new(),
+        };
     }
 
     // Checks if pointed token's type is illegal or not.
@@ -66,17 +85,78 @@ mod tests {
 
     #[test]
     fn new() {
-        let test_data: HashMap<String, TokenType> = HashMap::from([
-            (String::from("+"), TokenType::PLUS),
-            (String::from("-"), TokenType::MINUS),
-            (String::from("/"), TokenType::DIVIDE),
+        let test_data: Vec<Token> = vec![
+            Token {
+                typ: TokenType::PLUS,
+                literal: String::from("+"),
+                sub_tokens: Vec::new(),
+            },
+            Token {
+                typ: TokenType::MINUS,
+                literal: String::from("-"),
+                sub_tokens: Vec::new(),
+            },
+            Token {
+                typ: TokenType::DIVIDE,
+                literal: String::from("/"),
+                sub_tokens: Vec::new(),
+            },
+            Token {
+                typ: TokenType::SUBEXP,
+                literal: String::from(""),
+                sub_tokens: Vec::from([
+                    Token::from(String::from("2")),
+                    Token::from(String::from("+")),
+                    Token::from(String::from("5")),
+                ]),
+            },
+        ];
+
+        for t in test_data {
+            let res = Token::new(t.clone().typ, t.clone().literal, t.clone().sub_tokens);
+
+            assert_eq!(res.typ, t.clone().typ);
+            assert_eq!(res.literal, t.clone().literal);
+            assert_eq!(res.sub_tokens, t.clone().sub_tokens);
+        }
+    }
+
+    #[test]
+    fn new_sub() {
+        let test_data: HashMap<Vec<String>, Token> = HashMap::from([
+            (
+                vec![String::from("4"), String::from("+"), String::from("2")],
+                Token {
+                    typ: TokenType::SUBEXP,
+                    literal: String::new(),
+                    sub_tokens: vec![
+                        Token::from(String::from("4")),
+                        Token::from(String::from("+")),
+                        Token::from(String::from("2")),
+                    ],
+                },
+            ),
+            (
+                vec![String::from("2"), String::from("+"), String::from("+")],
+                Token {
+                    typ: TokenType::SUBEXP,
+                    literal: String::new(),
+                    sub_tokens: vec![
+                        Token::from(String::from("2")),
+                        Token::from(String::from("+")),
+                        Token::from(String::from("+")),
+                    ],
+                },
+            ),
         ]);
 
-        for (literal, typ) in test_data {
-            let res = Token::new(typ.clone(), literal.clone());
+        for (t, expected) in test_data {
+            let tokens = t.into_iter().map(|tt| Token::from(tt)).collect();
+            let res = Token::new_sub(tokens);
 
-            assert_eq!(res.typ, typ.clone());
-            assert_eq!(res.literal, literal.clone());
+            assert_eq!(res.typ, expected.clone().typ);
+            assert_eq!(res.literal, expected.clone().literal);
+            assert_eq!(res.sub_tokens, expected.clone().sub_tokens);
         }
     }
 
@@ -85,35 +165,35 @@ mod tests {
         let test_data: HashMap<String, Token> = HashMap::from([
             (
                 String::from("42"),
-                Token::new(TokenType::NUMBER, String::from("42")),
+                Token::new(TokenType::NUMBER, String::from("42"), Vec::new()),
             ),
             (
                 String::from("}"),
-                Token::new(TokenType::ILLEGAL, String::from("}")),
+                Token::new(TokenType::ILLEGAL, String::from("}"), Vec::new()),
             ),
             (
                 String::from("+"),
-                Token::new(TokenType::PLUS, String::from("+")),
+                Token::new(TokenType::PLUS, String::from("+"), Vec::new()),
             ),
             (
                 String::from("-"),
-                Token::new(TokenType::MINUS, String::from("-")),
+                Token::new(TokenType::MINUS, String::from("-"), Vec::new()),
             ),
             (
                 String::from("*"),
-                Token::new(TokenType::PRODUCT, String::from("*")),
+                Token::new(TokenType::PRODUCT, String::from("*"), Vec::new()),
             ),
             (
                 String::from("•"),
-                Token::new(TokenType::PRODUCT, String::from("•")),
+                Token::new(TokenType::PRODUCT, String::from("•"), Vec::new()),
             ),
             (
                 String::from("/"),
-                Token::new(TokenType::DIVIDE, String::from("/")),
+                Token::new(TokenType::DIVIDE, String::from("/"), Vec::new()),
             ),
             (
                 String::from(":"),
-                Token::new(TokenType::DIVIDE, String::from(":")),
+                Token::new(TokenType::DIVIDE, String::from(":"), Vec::new()),
             ),
         ]);
 
