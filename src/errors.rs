@@ -1,3 +1,9 @@
+//
+// Copyright 2022-present theiskaa. All rights reserved.
+// Use of this source code is governed by MIT license
+// that can be found in the LICENSE file.
+//
+
 /// Main structure model for errors of lexer.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Error<'a> {

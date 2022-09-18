@@ -1,3 +1,9 @@
+//
+// Copyright 2022-present theiskaa. All rights reserved.
+// Use of this source code is governed by MIT license
+// that can be found in the LICENSE file.
+//
+
 pub mod errors;
 pub mod lexer;
 pub mod monitor;
