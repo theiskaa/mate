@@ -4,6 +4,7 @@
 // that can be found in the LICENSE file.
 //
 
+pub mod calculator;
 pub mod errors;
 pub mod lexer;
 pub mod monitor;

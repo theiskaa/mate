@@ -4,7 +4,7 @@
 // that can be found in the LICENSE file.
 //
 
-/// Main structure model for errors of lexer.
+// Main structure model for errors of lexer.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Error<'a> {
     msg: &'a str,
