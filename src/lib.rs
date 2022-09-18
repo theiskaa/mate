@@ -7,6 +7,7 @@
 pub mod calculator;
 pub mod errors;
 pub mod lexer;
+pub mod mate;
 pub mod monitor;
 pub mod token;
 pub mod utils;
