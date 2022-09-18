@@ -15,7 +15,8 @@ impl Monitor for Token {
         } else {
             lit = String::new();
             for t in self.sub_tokens.iter().map(|t| t.to_string()) {
-                lit.push_str(format!("\n - {}", t).as_str())
+                // TODO: improve sub expression monitoring.
+                lit.push_str(format!("{} ||| ", t).as_str())
             }
         }
 
@@ -30,6 +31,9 @@ impl Monitor for TokenType {
             TokenType::NUMBER => "NUMBER",
             TokenType::ILLEGAL => "ILLEGAL",
             TokenType::SUBEXP => "SUB-EXPRESSION",
+            TokenType::LPAREN => "LEFT-PARENTHESES",
+            TokenType::RPAREN => "RIGHT-PARENTHESES",
+            TokenType::POINTER => "POINTER",
             TokenType::PLUS => "PLUS",
             TokenType::MINUS => "MINUS",
             TokenType::PRODUCT => "PRODUCT",
@@ -68,6 +72,10 @@ mod tests {
         let test_data: HashMap<String, &str> = HashMap::from([
             (TokenType::NUMBER.to_string(), "NUMBER"),
             (TokenType::ILLEGAL.to_string(), "ILLEGAL"),
+            (TokenType::SUBEXP.to_string(), "SUB-EXPRESSION"),
+            (TokenType::LPAREN.to_string(), "LEFT-PARENTHESES"),
+            (TokenType::RPAREN.to_string(), "RIGHT-PARENTHESES"),
+            (TokenType::POINTER.to_string(), "POINTER"),
             (TokenType::PLUS.to_string(), "PLUS"),
             (TokenType::MINUS.to_string(), "MINUS"),
             (TokenType::PRODUCT.to_string(), "PRODUCT"),

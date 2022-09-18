@@ -34,6 +34,12 @@ pub trait ChUtils {
     // Division signs        --> <:> and </>
     // Multiplication signs  --> <*> and <•>
     fn is_operation_sign(&self) -> bool;
+
+    // Checks if the given [&self] object is left parentheses or right parentheses sign.
+    //
+    // Left Parentheses  --> (
+    // Right Parentheses --> )
+    fn is_parentheses(&self) -> bool;
 }
 
 impl ChUtils for String {
@@ -58,6 +64,10 @@ impl ChUtils for String {
 
     fn is_operation_sign(&self) -> bool {
         self.is_plus_or_minus() || self.is_div_or_prod()
+    }
+
+    fn is_parentheses(&self) -> bool {
+        self.trim().eq("(") || self.trim().eq(")")
     }
 }
 
@@ -91,6 +101,14 @@ impl ChUtils for Token {
 
     fn is_operation_sign(&self) -> bool {
         self.is_plus_or_minus() || self.is_div_or_prod()
+    }
+
+    fn is_parentheses(&self) -> bool {
+        match self.typ {
+            TokenType::LPAREN => true,
+            TokenType::RPAREN => true,
+            _ => false,
+        }
     }
 }
 
@@ -185,6 +203,26 @@ mod tests {
         for (target, expected) in test_data {
             assert_eq!(target.is_operation_sign(), expected);
             assert_eq!(Token::from(target).is_operation_sign(), expected);
+        }
+    }
+
+    #[test]
+    fn is_parentheses() {
+        let test_data: HashMap<String, bool> = HashMap::from([
+            (String::from("/"), false),
+            (String::from("*"), false),
+            (String::from(":"), false),
+            (String::from("‚Ä¢"), false),
+            (String::from("-"), false),
+            (String::from("+"), false),
+            (String::from("5"), false),
+            (String::from(")"), true),
+            (String::from("("), true),
+        ]);
+
+        for (target, expected) in test_data {
+            assert_eq!(target.is_parentheses(), expected);
+            assert_eq!(Token::from(target).is_parentheses(), expected);
         }
     }
 }

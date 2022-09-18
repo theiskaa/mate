@@ -5,6 +5,9 @@ pub enum TokenType {
     NUMBER,
     ILLEGAL,
     SUBEXP,
+    LPAREN,
+    RPAREN,
+    POINTER,
 
     // Operations
     PLUS,
@@ -40,6 +43,16 @@ impl Token {
         }
     }
 
+    // Creates a pointer token, that newer will be used
+    // at normal token result.
+    pub fn new_pointer(i: usize) -> Self {
+        Self {
+            typ: TokenType::POINTER,
+            literal: format!("{}", i),
+            sub_tokens: Vec::new(),
+        }
+    }
+
     // Create a new token model from a literal.
     // The type is decided automatically by checking it.
     pub fn from(mut literal: String) -> Self {
@@ -55,6 +68,8 @@ impl Token {
                 "•" => TokenType::PRODUCT,
                 "/" => TokenType::DIVIDE,
                 ":" => TokenType::DIVIDE,
+                "(" => TokenType::LPAREN,
+                ")" => TokenType::RPAREN,
                 _ => TokenType::ILLEGAL,
             }
         }
@@ -69,10 +84,54 @@ impl Token {
         };
     }
 
+    // Takes the pointer's index as [usize].
+    // If current token is not an pointer token, returned option will be [None].
+    pub fn take_pointer_index(&self) -> Option<usize> {
+        if self.typ != TokenType::POINTER {
+            return None;
+        }
+
+        match self.literal.as_str().parse::<usize>() {
+            Err(_) => return None,
+            Ok(v) => return Some(v),
+        };
+    }
+
     // Checks if pointed token's type is illegal or not.
     pub fn is_illegal(&self) -> bool {
         match self.typ {
             TokenType::ILLEGAL => true,
+            _ => false,
+        }
+    }
+
+    // Checks if pointed token's type is left-parentheses or not.
+    pub fn is_lparen(&self) -> bool {
+        match self.typ {
+            TokenType::LPAREN => true,
+            _ => false,
+        }
+    }
+
+    // Checks if pointed token's type is right-parentheses or not.
+    pub fn is_rparen(&self) -> bool {
+        match self.typ {
+            TokenType::RPAREN => true,
+            _ => false,
+        }
+    }
+
+    // Checks if pointed token's type is pointer or not.
+    pub fn is_pointer(&self) -> bool {
+        match self.typ {
+            TokenType::POINTER => true,
+            _ => false,
+        }
+    }
+    // Checks if pointed token's type is sub-expression or not.
+    pub fn is_sub_exp(&self) -> bool {
+        match self.typ {
+            TokenType::SUBEXP => true,
             _ => false,
         }
     }
@@ -161,6 +220,25 @@ mod tests {
     }
 
     #[test]
+    fn new_pointer() {
+        let test_data: HashMap<usize, Token> = HashMap::from([
+            (
+                0,
+                Token::new(TokenType::POINTER, String::from("0"), Vec::new()),
+            ),
+            (
+                99,
+                Token::new(TokenType::POINTER, String::from("99"), Vec::new()),
+            ),
+        ]);
+
+        for (i, expected) in test_data {
+            let token: Token = Token::new_pointer(i);
+            assert_eq!(token, expected);
+        }
+    }
+
+    #[test]
     fn from() {
         let test_data: HashMap<String, Token> = HashMap::from([
             (
@@ -204,6 +282,20 @@ mod tests {
     }
 
     #[test]
+    fn take_pointer_index() {
+        let test_data: HashMap<Option<usize>, Token> = HashMap::from([
+            (None, Token::from(String::from("25"))),
+            (None, Token::from(String::from("-"))),
+            (Some(0), Token::new_pointer(0)),
+            (Some(9), Token::new_pointer(9)),
+        ]);
+
+        for (expected, token) in test_data {
+            assert_eq!(expected, token.take_pointer_index());
+        }
+    }
+
+    #[test]
     fn is_illegal() {
         let test_data: HashMap<bool, Token> = HashMap::from([
             (false, Token::from(String::from("-25"))),
@@ -214,6 +306,48 @@ mod tests {
 
         for (expected, token) in test_data {
             assert_eq!(expected, token.is_illegal());
+        }
+    }
+
+    #[test]
+    fn is_lparen() {
+        let test_data: HashMap<bool, Token> = HashMap::from([
+            (false, Token::from(String::from("-25"))),
+            (false, Token::from(String::from("-"))),
+            (false, Token::from(String::from(")"))),
+            (true, Token::from(String::from("("))),
+        ]);
+
+        for (expected, token) in test_data {
+            assert_eq!(expected, token.is_lparen());
+        }
+    }
+
+    #[test]
+    fn is_rparen() {
+        let test_data: HashMap<bool, Token> = HashMap::from([
+            (false, Token::from(String::from("-25"))),
+            (false, Token::from(String::from("-"))),
+            (false, Token::from(String::from("("))),
+            (true, Token::from(String::from(")"))),
+        ]);
+
+        for (expected, token) in test_data {
+            assert_eq!(expected, token.is_rparen());
+        }
+    }
+
+    #[test]
+    fn is_pointer() {
+        let test_data: HashMap<bool, Token> = HashMap::from([
+            (false, Token::from(String::from("-25"))),
+            (false, Token::from(String::from("-"))),
+            (false, Token::from(String::from("("))),
+            (true, Token::new_pointer(0)),
+        ]);
+
+        for (expected, token) in test_data {
+            assert_eq!(expected, token.is_pointer());
         }
     }
 }

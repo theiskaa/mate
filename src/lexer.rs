@@ -1,51 +1,7 @@
 use crate::{errors::Error, token::Token, utils::ChUtils};
-use std::cell::Cell;
+use std::{cell::Cell, collections::HashMap};
 use substring::Substring;
 
-// Lexer is the main lexical converter of the mate.
-// It converts given string Input(expression) to an array of tokens.
-//
-// > VISUAL EXAMPLE OF LEXER
-//
-//      USER INPUT
-//     ╭──────────────────────────╮
-//     │ (4 * 5 - 5) * 2 + 24 / 2 │
-//     ╰──────────────────────────╯
-//
-//      OUTPUT OF THE LEXER
-//     ╭───────────────────────────────────╮
-//     │                                   │    ╭─▶ First Sub Expression
-//     │   ╭───────────────────────────╮   │    │
-//     │   │                           │────────╯
-//     │   │   ╭───────────────────╮   │   │
-//     │   │   │                   │─╮ │   │
-//     │   │   │   ╭───────────╮   │ │ │   │
-//     │   │   │   │ NUMBER(4) │   │ ╰────────────▶ Second Sub Expression
-//     │   │   │   │ PRODUCT   │─╮ │   │   │        Which belongs to first sub expression.
-//     │   │   │   │ NUMBER(5) │ │ │   │   │
-//     │   │   │   ╰───────────╯ ╰──────────────╮
-//     │   │   │    MINUS          │   │   │    │
-//     │   │   │    NUMBER(5)      │   │   │    ╰─▶ Third Sub Expression
-//     │   │   │                   │   │   │        Which belongs to second sub expression.
-//     │   │   ╰───────────────────╯   │   │
-//     │   │                           │   │
-//     │   │    PRODUCT                │   │
-//     │   │    NUMBER(2)              │   │
-//     │   │                           │   │
-//     │   ╰───────────────────────────╯   │
-//     │                                   │
-//     │    PLUS                           │
-//     │                                   │
-//     │   ╭──────────────────────────╮    │    ╭─▶ Fourth Sub Expression
-//     │   │                          │    │    │
-//     │   │  NUMBER(24)              │    │    │
-//     │   │  DIVIDE                  │─────────╯
-//     │   │  NUMBER(2)               │    │
-//     │   │                          │    │
-//     │   ╰──────────────────────────╯    │
-//     │                                   │
-//     ╰───────────────────────────────────╯
-//
 #[derive(Clone, Debug, PartialEq)]
 pub struct Lexer<'a> {
     input: &'a str,               // Expression input.
@@ -70,10 +26,48 @@ impl<'a> Lexer<'a> {
         })
     }
 
-    // Loops through the [self.input], converts each [char] to an understandable token
-    // variable.
+    // [Lex] is the main function that converts
+    // each [char] to an understandable token variable.
     //
-    // As a result we'd got a list of tokens, which will be used to calculate.
+    //   USER INPUT
+    //  ╭──────────────────────────╮
+    //  │ (4 * 5 - 5) * 2 + 24 / 2 │
+    //  ╰──────────────────────────╯
+    //
+    //   OUTPUT OF THE LEXER
+    //  ╭───────────────────────────────────╮
+    //  │                                   │    ╭─▶ First Sub Expression
+    //  │   ╭───────────────────────────╮   │    │
+    //  │   │                           │────────╯
+    //  │   │   ╭───────────────────╮   │   │
+    //  │   │   │                   │─╮ │   │
+    //  │   │   │   ╭───────────╮   │ │ │   │
+    //  │   │   │   │ NUMBER(4) │   │ ╰────────────▶ Second Sub Expression
+    //  │   │   │   │ PRODUCT   │─╮ │   │   │        Which belongs to first sub expression.
+    //  │   │   │   │ NUMBER(5) │ │ │   │   │
+    //  │   │   │   ╰───────────╯ ╰──────────────╮
+    //  │   │   │    MINUS          │   │   │    │
+    //  │   │   │    NUMBER(5)      │   │   │    ╰─▶ Third Sub Expression
+    //  │   │   │                   │   │   │        Which belongs to second sub expression.
+    //  │   │   ╰───────────────────╯   │   │
+    //  │   │                           │   │
+    //  │   │    PRODUCT                │   │
+    //  │   │    NUMBER(2)              │   │
+    //  │   │                           │   │
+    //  │   ╰───────────────────────────╯   │
+    //  │                                   │
+    //  │    PLUS                           │
+    //  │                                   │
+    //  │   ╭──────────────────────────╮    │    ╭─▶ Fourth Sub Expression
+    //  │   │                          │    │    │
+    //  │   │  NUMBER(24)              │    │    │
+    //  │   │  DIVIDE                  │─────────╯
+    //  │   │  NUMBER(2)               │    │
+    //  │   │                          │    │
+    //  │   ╰──────────────────────────╯    │
+    //  │                                   │
+    //  ╰───────────────────────────────────╯
+    //
     pub fn lex(input: &'a str) -> Result<Vec<Token>, Error> {
         let lexer: Lexer = match Lexer::new(input) {
             Ok(l) => l,
@@ -86,38 +80,179 @@ impl<'a> Lexer<'a> {
                 None => break,
                 Some(r) => match r {
                     Err(e) => return Err(e),
-                    Ok(r) => tokens.push(r),
+                    Ok(r) => tokens.push(r), // TODO: handle illegal tokens
                 },
             }
         }
 
-        Ok(Lexer::combine_tokens(tokens))
+        match Lexer::nest_parentheses(tokens) {
+            Err(e) => return Err(e),
+            Ok(v) => match Lexer::break_nesting(0, v) {
+                Err(e) => return Err(e),
+                Ok(v) => return Ok(Lexer::combine_tokens(v)),
+            },
+        }
+    }
+
+    // The nesting-to-tokens algorithm implementation.
+    // Nesting-to-tokens algorithm is a hashing algorithm that lexer uses to
+    // parse parentheses expressions and put them into their nest level.
+    //
+    // For example if the given token list is -> "5 + (2 + 4) : (4 + 5 * (3 + 5))"
+    // Generated result will be:  --> Note: {<integer>} represents the pointer token.
+    //  | 0: 5 + {1} : {2}
+    //  | 1: 2 + 4
+    //  | 2: 4 + 5 * {3}
+    //  | 3: 3 + 5
+    //
+    // By storing tokens by their nesting levels, makes it easy to understand and implement
+    // parentheses expressions as sub-expressions.
+    fn nest_parentheses(
+        tokens: Vec<Token>,
+    ) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error<'a>> {
+        let mut nested: HashMap<usize, (Vec<Token>, bool)> = HashMap::new();
+
+        let mut level: usize = 0;
+
+        let mut i: usize = 0;
+        while i < tokens.clone().len() {
+            if tokens[i].clone().is_lparen() {
+                let mut base: (Vec<Token>, bool) = match nested.get(&0) {
+                    None => (vec![], false),
+                    Some(v) => v.clone(),
+                };
+
+                level += 1;
+
+                base.0.push(Token::new_pointer(level));
+                nested.insert(0, base.clone());
+
+                match Lexer::take_till_end(tokens.clone(), i) {
+                    None => return Err(Error::new("TODO: find a appropriate error")),
+                    Some(v) => {
+                        let mut new: (Vec<Token>, bool) = (vec![], v.2);
+                        for t in v.0.iter() {
+                            new.0.push(t.clone());
+                        }
+
+                        nested.insert(level, new);
+                        i = v.1;
+                    }
+                };
+
+                continue;
+            } else if tokens[i].clone().is_rparen() {
+                i += 1;
+                continue;
+            }
+
+            let mut base: (Vec<Token>, bool) = match nested.get(&0) {
+                None => (vec![], false),
+                Some(v) => v.clone(),
+            };
+
+            base.0.push(tokens[i].clone());
+            nested.insert(0, base.clone());
+            i += 1;
+        }
+
+        return Ok(nested);
+    }
+
+    // Collects all the tokens from exact one parentheses expression.
+    // To make all stuff work well, pass the right starting point of your parentheses.
+    // If [start] doesn't equals to opening parentheses, result gonna be [None].
+    fn take_till_end(tokens: Vec<Token>, start: usize) -> Option<(Vec<Token>, usize, bool)> {
+        let mut iteration_count = start;
+        let mut has_to_recall: bool = false;
+
+        let mut level: i32 = 1; // [start] indexed value should always equal to a opening parentheses
+        if !tokens.clone()[start].is_lparen() || start > tokens.clone().len() {
+            return None;
+        }
+
+        let mut collected: Vec<Token> = Vec::new();
+        for i in (start + 1)..tokens.len() {
+            iteration_count += 1;
+
+            if tokens[i].clone().is_lparen() {
+                level += 1;
+                has_to_recall = true;
+            }
+
+            if tokens[i].clone().is_rparen() {
+                level -= 1;
+                if level == 0 {
+                    return Some((collected, iteration_count, has_to_recall));
+                }
+            }
+
+            collected.push(tokens[i].clone());
+        }
+
+        Some((collected, iteration_count, has_to_recall))
+    }
+
+    // Breaks the result of [nest_parentheses] into one line token list.
+    // Runs into each nest-level indexed hash-map value and collects them into one line token
+    // list.
+    // If it's required to re-nest current nest-level indexed hash-map value, it calls
+    // [nest_parentheses] and then itself inside of it.
+    fn break_nesting(
+        point: usize,
+        nested: HashMap<usize, (Vec<Token>, bool)>,
+    ) -> Result<Vec<Token>, Error<'a>> {
+        let mut result: Vec<Token> = Vec::new();
+
+        match nested.get(&point) {
+            None => return Ok(result),
+            Some(v) => {
+                for t in v.0.iter() {
+                    if !t.is_pointer() {
+                        result.push(t.clone());
+                        continue;
+                    }
+
+                    match nested.get(&t.clone().take_pointer_index().unwrap()) {
+                        None => continue,
+                        Some(v) => {
+                            if !v.1 {
+                                let combined: Vec<Token> = Lexer::combine_tokens(v.0.clone());
+                                result.push(Token::new_sub(combined));
+                                continue;
+                            }
+
+                            // If the tokens at current point in nested, contains parentheses
+                            // that means we have to re-nest and re break them as tokens recursively..
+                            match Lexer::nest_parentheses(v.0.clone()) {
+                                Err(e) => return Err(e),
+                                Ok(v) => match Lexer::break_nesting(0, v) {
+                                    Err(e) => return Err(e),
+                                    Ok(v) => {
+                                        let combined: Vec<Token> = Lexer::combine_tokens(v);
+                                        result.push(Token::new_sub(combined));
+                                    }
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        Ok(result)
     }
 
     // Takes first-party tokens, combines them and returns
-    // fully-ready (final)tokens for calculation.
+    // 1D nested tokens.
     //
-    //   Before - (First Party Token)
-    //   ─────────────────────────────────
-    //   An array of tokens - which is generated by [lex].
-    //   Has absolutely no sub-tokens which could be imagined
-    //   as 1D array, with no nesting.
-    //  ╭────────╮ ╭────────╮ ╭──────╮ ╭────────╮ ╭────────╮
-    //  │ LPAREN │ │ NUMBER │ │ PLUS │ │ NUMBER │ │ RPAREN │
-    //  ╰────────╯ ╰────────╯ ╰──────╯ ╰────────╯ ╰────────╯
-    //
-    //   After - (Final Token)
-    //   ─────────────────────────────────
-    //   By combining a parentheses equation token list
-    //   We'd got a one-base token - "Sub Token".
-    //   Which has three sub tokens inside ──▶ NUMBER - PLUS - NUMBER.
-    //  ╭────────────────────────────────╮
-    //  │ ╭────────╮ ╭──────╮ ╭────────╮ │
-    //  │ │ NUMBER │ │ PLUS │ │ NUMBER │ │
-    //  │ ╰────────╯ ╰──────╯ ╰────────╯ │
-    //  ╰────────────────────────────────╯
-    //
-    // TODO: implement parentheses parsing.
+    // In first inner result of token generation of [lex],
+    // multiplication and division aren't collected together.
+    // To take care of arithmetic's "process priority", we have
+    // first calculate the multiplication or division action, and
+    // then continue to the other ones.
+    // So, that, we have to convert the multiplication and division
+    // parts of main expression into the sub expressions.
     fn combine_tokens(tokens: Vec<Token>) -> Vec<Token> {
         let mut combined_tokens: Vec<Token> = Vec::new();
         let mut sub_tokens: Vec<Token> = Vec::new();
@@ -133,8 +268,9 @@ impl<'a> Lexer<'a> {
             }
 
             // Checks matching of new or exiting sub-token.
-            let is_sub = sub_tokens.len() > 0 && (current.is_number() || current.is_div_or_prod());
-            if is_sub || current.is_number() && next.clone().is_div_or_prod() {
+            let is_sub = sub_tokens.len() > 0
+                && (current.is_number() || current.is_div_or_prod() || current.is_sub_exp());
+            if is_sub || next.is_div_or_prod() && (current.is_number() || current.is_sub_exp()) {
                 sub_tokens.push(current);
                 continue;
             }
@@ -149,7 +285,7 @@ impl<'a> Lexer<'a> {
 
         // Avoid appending sub-expression-token to empty tokens list.
         if combined_tokens.is_empty() {
-            combined_tokens = sub_tokens;
+            return sub_tokens;
         } else if !sub_tokens.is_empty() {
             combined_tokens.push(Token::new_sub(sub_tokens.clone()));
         }
@@ -328,7 +464,8 @@ impl<'a> Lexer<'a> {
             None => true, // if there is nothing in back, then it's free from number.
             Some(v) => {
                 if v != ' ' {
-                    return !v.to_string().is_number();
+                    let is_not_paren: bool = !v.to_string().is_parentheses();
+                    return is_not_paren && !v.to_string().is_number();
                 }
 
                 self.is_free_from_number(step + 1)
@@ -424,6 +561,78 @@ mod test {
                         Token::from(String::from("-20")),
                         Token::from(String::from("/")),
                         Token::from(String::from("-5")),
+                    ]),
+                ]),
+            ),
+            (
+                "(5 - 9) - 10",
+                Ok(vec![
+                    Token::new_sub(vec![
+                        Token::from(String::from("5")),
+                        Token::from(String::from("-")),
+                        Token::from(String::from("9")),
+                    ]),
+                    Token::from(String::from("-")),
+                    Token::from(String::from("10")),
+                ]),
+            ),
+            (
+                "(10 - 5) - (10 / 2)",
+                Ok(vec![
+                    Token::new_sub(vec![
+                        Token::from(String::from("10")),
+                        Token::from(String::from("-")),
+                        Token::from(String::from("5")),
+                    ]),
+                    Token::from(String::from("-")),
+                    Token::new_sub(vec![
+                        Token::from(String::from("10")),
+                        Token::from(String::from("/")),
+                        Token::from(String::from("2")),
+                    ]),
+                ]),
+            ),
+            (
+                "((10 - 5) - (10 / 2)) / 2",
+                Ok(vec![
+                    Token::new_sub(vec![
+                        Token::new_sub(vec![
+                            Token::from(String::from("10")),
+                            Token::from(String::from("-")),
+                            Token::from(String::from("5")),
+                        ]),
+                        Token::from(String::from("-")),
+                        Token::new_sub(vec![
+                            Token::from(String::from("10")),
+                            Token::from(String::from("/")),
+                            Token::from(String::from("2")),
+                        ]),
+                    ]),
+                    Token::from(String::from("/")),
+                    Token::from(String::from("2")),
+                ]),
+            ),
+            (
+                "(2 + 5) * (5 - 9 / (8 - 5))",
+                Ok(vec![
+                    Token::new_sub(vec![
+                        Token::from(String::from("2")),
+                        Token::from(String::from("+")),
+                        Token::from(String::from("5")),
+                    ]),
+                    Token::from(String::from("*")),
+                    Token::new_sub(vec![
+                        Token::from(String::from("5")),
+                        Token::from(String::from("-")),
+                        Token::new_sub(vec![
+                            Token::from(String::from("9")),
+                            Token::from(String::from("/")),
+                            Token::new_sub(vec![
+                                Token::from(String::from("8")),
+                                Token::from(String::from("-")),
+                                Token::from(String::from("5")),
+                            ]),
+                        ]),
                     ]),
                 ]),
             ),
