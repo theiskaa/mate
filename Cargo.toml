@@ -2,6 +2,13 @@
 name = "mate-rs"
 version = "0.1.0"
 edition = "2021"
+authors = ["me@theiskaa.com"]
+description = "A simple and lightweight math library, that can parse and calculate string expressions"
+readme = "README.md"
+homepage = "https://github.com/theiskaa/mate"
+repository = "https://github.com/theiskaa/mate"
+license-file = "LICENCE"
+keywords = ["interpreter", "parser", "calculator"]
 
 [dependencies]
 substring = "1.4.5"
