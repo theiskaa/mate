@@ -6,7 +6,7 @@ expression's result directly without dealing with parsing and calculating manual
 
 # Usage
 
-This crate is on [crates.io](http://crates.io/crates/mate-rs) and can be used by adding regex to your dependencies in your project's `Cargo.toml`.
+This crate is on [crates.io](http://crates.io/crates/mate-rs) and can be used by adding mate-rs to your dependencies in your project's `Cargo.toml`.
 ```toml
 [dependencies]
 mate-rs = "0.1.0"
