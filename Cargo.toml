@@ -7,7 +7,7 @@ description = "A simple and lightweight math library, that can parse and calcula
 readme = "README.md"
 homepage = "https://github.com/theiskaa/mate"
 repository = "https://github.com/theiskaa/mate"
-license-file = "LICENCE"
+license-file = "LICENSE"
 keywords = ["interpreter", "parser", "calculator"]
 
 [dependencies]
