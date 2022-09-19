@@ -1,5 +1,6 @@
 # Added by cargo
 
 /target/
+/repl/target/
 Cargo.lock
 .DS_Store
