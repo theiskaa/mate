@@ -20,6 +20,7 @@ pub enum TokenType {
     MINUS,
     PRODUCT,
     DIVIDE,
+    PERCENTAGE,
 }
 
 // A small-block representing structure of lexer's input.
@@ -76,6 +77,7 @@ impl Token {
                 ":" => TokenType::DIVIDE,
                 "(" => TokenType::LPAREN,
                 ")" => TokenType::RPAREN,
+                "%" => TokenType::PERCENTAGE,
                 _ => TokenType::ILLEGAL,
             }
         }
@@ -279,6 +281,10 @@ mod tests {
                 String::from(":"),
                 Token::new(TokenType::DIVIDE, String::from(":"), Vec::new()),
             ),
+            (
+                String::from("%"),
+                Token::new(TokenType::PERCENTAGE, String::from("%"), Vec::new()),
+            ),
         ]);
 
         for (literal, expected) in test_data {
@@ -354,6 +360,20 @@ mod tests {
 
         for (expected, token) in test_data {
             assert_eq!(expected, token.is_pointer());
+        }
+    }
+
+    #[test]
+    fn is_percentage() {
+        let test_data: HashMap<bool, Token> = HashMap::from([
+            (false, Token::from(String::from("-25"))),
+            (false, Token::from(String::from("-"))),
+            (false, Token::from(String::from("("))),
+            (true, Token::from(String::from("%"))),
+        ]);
+
+        for (expected, token) in test_data {
+            assert_eq!(expected, token.is_percentage());
         }
     }
 }

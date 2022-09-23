@@ -45,14 +45,16 @@ impl Calculator {
         let mut i: usize = 0;
         while i <= tokens.len() {
             let token: Token = tokens[i].clone();
-
-            let mut y: f64 = 0.0;
-            let x: f64 = result.clone();
-            let operation: TokenType;
-
             if token.clone().is_illegal() {
                 return Err(Error::new("Found an illegal character token"));
             }
+
+            let mut y: f64 = 0.0;
+            let x: f64 = result.clone();
+            let operation: TokenType = match Calculator::take_operation(i, tokens.clone()) {
+                Ok(v) => v,
+                Err(e) => return Err(e),
+            };
 
             if token.clone().is_number() {
                 y = match token.clone().literal.as_str().parse::<f64>() {
@@ -66,25 +68,40 @@ impl Calculator {
                 };
             }
 
-            // At first loop, operation must to be PLUS.
-            // Because, res is zero and we have to
-            // add some value before starting working on it.
-            if i == 0 {
-                operation = TokenType::PLUS;
-            } else if tokens.clone()[i - 1].clone().is_plus_or_minus()
-                || tokens.clone()[i - 1].clone().is_div_or_prod()
-            {
-                operation = tokens.clone()[i - 1].clone().typ;
-            } else {
-                return Err(Error::new("Invalid order of token characters"));
-            }
-
             // Update res by current X/Y/O.
             result = Calculator::execute_operation(x, y, operation);
             i += 2;
         }
 
         Ok(result)
+    }
+
+    fn take_operation(i: usize, tokens: Vec<Token>) -> Result<TokenType, Error<'static>> {
+        // At first loop, operation must to be PLUS.
+        // Because, res is zero and we have to
+        // add some value before starting working on it.
+        if i == 0 {
+            return Ok(TokenType::PLUS);
+        }
+
+        if tokens.len() - 1 < i - 1 {
+            let msg = "There is no enough token characters to calculate correct result";
+            return Err(Error::new(msg));
+        }
+
+        if tokens.clone()[i - 1].clone().is_illegal() {
+            return Err(Error::new("Found an illegal character token"));
+        }
+
+        let is_plus_or_minus = tokens.clone()[i - 1].clone().is_plus_or_minus();
+        let is_div_or_prod = tokens.clone()[i - 1].clone().is_div_or_prod();
+        let is_percentage = tokens.clone()[i - 1].clone().is_percentage();
+
+        if is_plus_or_minus || is_div_or_prod || is_percentage {
+            return Ok(tokens.clone()[i - 1].clone().typ);
+        }
+
+        return Err(Error::new("Invalid order of token characters"));
     }
 
     // Executes the given [operation] for [X] and [Y]
@@ -103,6 +120,7 @@ impl Calculator {
             (TokenType::MINUS.to_string(), x - y),
             (TokenType::PRODUCT.to_string(), x * y),
             (TokenType::DIVIDE.to_string(), x / y),
+            (TokenType::PERCENTAGE.to_string(), (x / 100.0) * y),
         ]);
 
         match operations.get(&operation.to_string()) {

@@ -274,9 +274,12 @@ impl<'a> Lexer<'a> {
             }
 
             // Checks matching of new or exiting sub-token.
+            let current_is_combinable = current.is_div_or_prod() || current.is_percentage();
+            let next_is_combinable = next.is_div_or_prod() || current.is_percentage();
             let is_sub = sub_tokens.len() > 0
-                && (current.is_number() || current.is_div_or_prod() || current.is_sub_exp());
-            if is_sub || next.is_div_or_prod() && (current.is_number() || current.is_sub_exp()) {
+                && (current.is_number() || current.is_sub_exp() || current_is_combinable);
+
+            if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp()) {
                 sub_tokens.push(current);
                 continue;
             }
