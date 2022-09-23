@@ -6,11 +6,6 @@
  </a>
 </p>
 
-This crate provides a library for parsing and calculating arithmetic expressions inputted as &str(string).
-Uses `Lexer` structure to parse string input in to token list, and `Calculator` structure to calculate final result from token list.
-Has also a general wrapper structure that implements `Lexer` and `Calculator` inside of it. And makes it easy to calculate arithmetic
-expression's result directly without dealing with parsing and calculating manually.
-
 # Usage
 
 This crate is on [crates.io](http://crates.io/crates/mate-rs) and can be used by adding mate-rs to your dependencies in your project's `Cargo.toml`.
@@ -44,7 +39,7 @@ match result {
 ```rust
 use mate_rs::{calculator::Calculator, lexer::Lexer};
 
-// Generates tokens gonna be something like:
+// Generated tokens gonna be something like:
 //  | Token(type: NUMBER  literal: "-2"),
 //  | Token(type: PLUS    literal: "+"),
 //  | Token(type: NUMBER  literal: "2"),
