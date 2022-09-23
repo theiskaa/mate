@@ -46,6 +46,9 @@ pub trait ChUtils {
     // Left Parentheses  --> (
     // Right Parentheses --> )
     fn is_parentheses(&self) -> bool;
+
+    // Checks if the given [%self] object is percentage sign or not.
+    fn is_percentage(&self) -> bool;
 }
 
 impl ChUtils for String {
@@ -74,6 +77,10 @@ impl ChUtils for String {
 
     fn is_parentheses(&self) -> bool {
         self.trim().eq("(") || self.trim().eq(")")
+    }
+
+    fn is_percentage(&self) -> bool {
+        self.trim().eq("%")
     }
 }
 
@@ -113,6 +120,13 @@ impl ChUtils for Token {
         match self.typ {
             TokenType::LPAREN => true,
             TokenType::RPAREN => true,
+            _ => false,
+        }
+    }
+
+    fn is_percentage(&self) -> bool {
+        match self.typ {
+            TokenType::PERCENTAGE => true,
             _ => false,
         }
     }

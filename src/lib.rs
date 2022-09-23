@@ -37,7 +37,7 @@ match result {
 ```rust
 use mate_rs::{calculator::Calculator, lexer::Lexer};
 
-// Generates tokens gonna be something like:
+// Generated tokens gonna be something like:
 //  | Token(type: NUMBER  literal: "-2"),
 //  | Token(type: PLUS    literal: "+"),
 //  | Token(type: NUMBER  literal: "2"),

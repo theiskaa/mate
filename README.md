@@ -6,10 +6,7 @@
  </a>
 </p>
 
-This crate provides a library for parsing and calculating arithmetic expressions inputted as &str(string).
-Uses `Lexer` structure to parse string input in to token list, and `Calculator` structure to calculate final result from token list.
-Has also a general wrapper structure that implements `Lexer` and `Calculator` inside of it. And makes it easy to calculate arithmetic
-expression's result directly without dealing with parsing and calculating manually.
+Mate is a library for parsing and calculating arithmetic expressions inputted as &str(string). Uses Lexer(similar to interpreted-programming languages' lexer) structure to parse string input in to token list, and Calculator structure to calculate final result from token list. Implements also a general wrapper structure that implements Lexer and Calculator inside of it. And makes it easy to calculate arithmetic expression's result directly without dealing with parsing and calculating manually.
 
 # Usage
 
@@ -44,7 +41,7 @@ match result {
 ```rust
 use mate_rs::{calculator::Calculator, lexer::Lexer};
 
-// Generates tokens gonna be something like:
+// Generated tokens gonna be something like:
 //  | Token(type: NUMBER  literal: "-2"),
 //  | Token(type: PLUS    literal: "+"),
 //  | Token(type: NUMBER  literal: "2"),
@@ -70,12 +67,14 @@ match result {
 };
 ```
 
-## How it works
+---
+
+# How it works
 Mate is all about two main structures, [Lexer] and [Calculator].
 [Lexer] is the structure that takes care of parsing given string expression, 
 and [Calculator] is the structure that takes care of calculating final result via parsed tokens 
 
-### Lexer
+## Lexer
 Loops through the given input string, reads and converts each character to an [Token] structure.
 We've several types of main tokens and they are:
 - `ILLEGAL` - illegal character.
@@ -90,22 +89,14 @@ And nests the parentheses with a custom level-to-expression algorithm.
 
 level-to-expression algorithm is mapping algorithm that maps concrete expression to it's nesting level.
 
-*For example if the given token list is* -> `5 + (2 + 4) : (4 + 5 * (3 + 5))`.
+*For example if the given token list is* -> `(2 + 5) : (5 - 9 / (8 - 5))`.
 *Generated result will be:*
 
-``` 
-// Note: {<integer>} represents the pointer token.
-{
-  0: 5 + {1} : {2}
-  1: 2 + 4
-  2: 4 + 5 * {3}
-  3: 3 + 5
-}
-```
+<img width="500" alt="mate" src="https://user-images.githubusercontent.com/59066341/192025304-220c58eb-8bbe-4820-bd6a-5f18b5b5758b.png">
 
 **By doing that we make it easy to keep the operation-priority safe.**
 
-### Calculator
+## Calculator
 
 Calculator takes the parsed token-list and calculates final result of it.
 Uses custom `X/O/Y` algorithm a.k.a `X/OPERATION/Y` where `X` and `Y` are numbers, and `O` is operation.
