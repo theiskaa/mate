@@ -273,12 +273,31 @@ impl<'a> Lexer<'a> {
                 next = Token::from(String::new());
             }
 
-            // Checks matching of new or exiting sub-token.
+            let is_auto_solids = current.is_number() && next.is_number()
+                || current.is_sub_exp() && next.is_sub_exp();
+            let is_auto_mixings = current.is_number() && next.is_sub_exp()
+                || current.is_sub_exp() && next.is_number();
+
+            // Auto append multiplication ◀╮
+            // if there is no sign between │ two "number"(normal number and sub-exp) token.
+            //    ╭──────────────────╭─────╯
+            // ╭─ ▼ ───────╮     ╭── ▼ ─────────╮
+            // │ 4(2 + 10) │ ──▶ │ 4 • (2 + 10) │
+            // ╰───────────╯     ╰──────────────╯
+            if is_auto_solids || is_auto_mixings {
+                sub_tokens.append(&mut Vec::from([
+                    current.clone(),
+                    Token::from(String::from("*")),
+                ]));
+                continue;
+            }
+
             let current_is_combinable = current.is_div_or_prod() || current.is_percentage();
             let next_is_combinable = next.is_div_or_prod() || current.is_percentage();
             let is_sub = sub_tokens.len() > 0
                 && (current.is_number() || current.is_sub_exp() || current_is_combinable);
 
+            // Checks matching of new or exiting sub-token.
             if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp()) {
                 sub_tokens.push(current);
                 continue;
@@ -643,6 +662,26 @@ mod test {
                             ]),
                         ]),
                     ]),
+                ]),
+            ),
+            (
+                "5(5 / 2)(9 * 3)11",
+                Ok(vec![
+                    Token::from(String::from("5")),
+                    Token::from(String::from("*")),
+                    Token::new_sub(vec![
+                        Token::from(String::from("5")),
+                        Token::from(String::from("/")),
+                        Token::from(String::from("2")),
+                    ]),
+                    Token::from(String::from("*")),
+                    Token::new_sub(vec![
+                        Token::from(String::from("9")),
+                        Token::from(String::from("*")),
+                        Token::from(String::from("3")),
+                    ]),
+                    Token::from(String::from("*")),
+                    Token::from(String::from("11")),
                 ]),
             ),
         ]);
