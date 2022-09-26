@@ -116,14 +116,14 @@ impl Calculator {
     //                      ╰─────────╯    ╰───╯
     fn execute_operation(x: f64, y: f64, operation: TokenType) -> f64 {
         let operations: HashMap<String, f64> = HashMap::from([
-            (TokenType::PLUS.to_string(), x + y),
-            (TokenType::MINUS.to_string(), x - y),
-            (TokenType::PRODUCT.to_string(), x * y),
-            (TokenType::DIVIDE.to_string(), x / y),
-            (TokenType::PERCENTAGE.to_string(), (x / 100.0) * y),
+            (TokenType::PLUS.to_string(0), x + y),
+            (TokenType::MINUS.to_string(0), x - y),
+            (TokenType::PRODUCT.to_string(0), x * y),
+            (TokenType::DIVIDE.to_string(0), x / y),
+            (TokenType::PERCENTAGE.to_string(0), (x / 100.0) * y),
         ]);
 
-        match operations.get(&operation.to_string()) {
+        match operations.get(&operation.to_string(0)) {
             None => 0.0,
             Some(v) => v.clone(),
         }
