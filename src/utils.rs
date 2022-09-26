@@ -245,4 +245,19 @@ mod tests {
             assert_eq!(Token::from(target).is_parentheses(), expected);
         }
     }
+
+    #[test]
+    fn is_percentage() {
+        let test_data: HashMap<bool, String> = HashMap::from([
+            (false, String::from("-25")),
+            (false, String::from("-")),
+            (false, String::from("(")),
+            (true, String::from("%")),
+        ]);
+
+        for (expected, data) in test_data {
+            assert_eq!(expected, data.is_percentage());
+            assert_eq!(expected, Token::from(data).is_percentage());
+        }
+    }
 }
