@@ -771,6 +771,58 @@ mod test {
                     Token::from(String::from("11")),
                 ]),
             ),
+            (
+                "5 ^ 3 ^ 2 ^ 5 * 19 - 50",
+                Ok(vec![
+                    Token::new_sub(vec![
+                        Token::new_sub(vec![
+                            Token::from(String::from("5")),
+                            Token::from(String::from("^")),
+                            Token::new_sub(vec![
+                                Token::from(String::from("3")),
+                                Token::from(String::from("^")),
+                                Token::new_sub(vec![
+                                    Token::from(String::from("2")),
+                                    Token::from(String::from("^")),
+                                    Token::from(String::from("5")),
+                                ]),
+                            ]),
+                        ]),
+                        Token::from(String::from("*")),
+                        Token::from(String::from("19")),
+                    ]),
+                    Token::from(String::from("-")),
+                    Token::from(String::from("50")),
+                ]),
+            ),
+            (
+                "5 ^ 3 ^ 19",
+                Ok(vec![
+                    Token::from(String::from("5")),
+                    Token::from(String::from("^")),
+                    Token::new_sub(vec![
+                        Token::from(String::from("3")),
+                        Token::from(String::from("^")),
+                        Token::from(String::from("19")),
+                    ]),
+                ]),
+            ),
+            (
+                "(2 + 3 ^ 5) ^ 9",
+                Ok(vec![
+                    Token::new_sub(vec![
+                        Token::from(String::from("2")),
+                        Token::from(String::from("+")),
+                        Token::new_sub(vec![
+                            Token::from(String::from("3")),
+                            Token::from(String::from("^")),
+                            Token::from(String::from("5")),
+                        ]),
+                    ]),
+                    Token::from(String::from("^")),
+                    Token::from(String::from("9")),
+                ]),
+            ),
         ]);
 
         for (input, expected) in test_data {
