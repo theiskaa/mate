@@ -13,7 +13,7 @@ Mate is a library for parsing and calculating arithmetic expressions inputted as
 This crate is on [crates.io](http://crates.io/crates/mate-rs) and can be used by adding mate-rs to your dependencies in your project's `Cargo.toml`.
 ```toml
 [dependencies]
-mate-rs = "0.1.0"
+mate-rs = "0.1.3"
 ```
 
 ## Example: Simple usage | `Mate`
@@ -79,7 +79,7 @@ Loops through the given input string, reads and converts each character to an [T
 We've several types of main tokens and they are:
 - `ILLEGAL` - illegal character.
 - `NUMBER` - number type.
-- `MINUS`, `PLUS`, `PRODUCT`, `DIVIDE` - operations.
+- `MINUS`, `PLUS`, `PRODUCT`, `DIVIDE`, `PERCENTAGE`, `ROOT` - operations.
 - `LPAREN`, `RPAREN` - parentheses.
 - `SUBEXP` - sub expression, expressions inside of parentheses or combinations of division and multiplication.
 
