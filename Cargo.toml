@@ -1,6 +1,6 @@
 [package]
 name = "mate-rs"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["me@theiskaa.com"]
 description = "A simple and lightweight math library, that can parse and calculate string expressions"
