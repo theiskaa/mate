@@ -1,3 +1,11 @@
+# v0.1.3
+The fourth version of mate.
+Implemented functionality to parse and calculate root power expressions.
+
+- **Pull Request:** [#20](https://github.como/theiskaa/mate/pull/20)
+
+- **H-E that versions has ability to solve**: `5 ^ 2` -> *25``*
+
 # v0.1.2
 The third version of mate.
 Implemented functionality to understood and auto-append multiplication between two number(normal number & sub-expression) tokens.

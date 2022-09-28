@@ -9,10 +9,10 @@ use crate::utils::ChUtils;
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     NUMBER,
-    ILLEGAL,
     SUBEXP,
     LPAREN,
     RPAREN,
+    ILLEGAL,
     POINTER,
 
     // Operations
@@ -21,6 +21,7 @@ pub enum TokenType {
     PRODUCT,
     DIVIDE,
     PERCENTAGE,
+    ROOT,
 }
 
 // A small-block representing structure of lexer's input.
@@ -78,6 +79,7 @@ impl Token {
                 "(" => TokenType::LPAREN,
                 ")" => TokenType::RPAREN,
                 "%" => TokenType::PERCENTAGE,
+                "^" => TokenType::ROOT,
                 _ => TokenType::ILLEGAL,
             }
         }
@@ -136,10 +138,19 @@ impl Token {
             _ => false,
         }
     }
+
     // Checks if pointed token's type is sub-expression or not.
     pub fn is_sub_exp(&self) -> bool {
         match self.typ {
             TokenType::SUBEXP => true,
+            _ => false,
+        }
+    }
+
+    // Checks if pointed token's type is root or not.
+    pub fn is_root(&self) -> bool {
+        match self.typ {
+            TokenType::ROOT => true,
             _ => false,
         }
     }
@@ -364,16 +375,30 @@ mod tests {
     }
 
     #[test]
-    fn is_percentage() {
+    fn is_sub_exp() {
         let test_data: HashMap<bool, Token> = HashMap::from([
             (false, Token::from(String::from("-25"))),
             (false, Token::from(String::from("-"))),
             (false, Token::from(String::from("("))),
-            (true, Token::from(String::from("%"))),
+            (true, Token::new_sub(vec![])),
         ]);
 
         for (expected, token) in test_data {
-            assert_eq!(expected, token.is_percentage());
+            assert_eq!(expected, token.is_sub_exp());
+        }
+    }
+
+    #[test]
+    fn is_root() {
+        let test_data: HashMap<bool, Token> = HashMap::from([
+            (false, Token::from(String::from("-25"))),
+            (false, Token::from(String::from("-"))),
+            (false, Token::from(String::from("("))),
+            (true, Token::from(String::from("^"))),
+        ]);
+
+        for (expected, token) in test_data {
+            assert_eq!(expected, token.is_root());
         }
     }
 }

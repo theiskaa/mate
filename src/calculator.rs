@@ -96,8 +96,9 @@ impl Calculator {
         let is_plus_or_minus = tokens.clone()[i - 1].clone().is_plus_or_minus();
         let is_div_or_prod = tokens.clone()[i - 1].clone().is_div_or_prod();
         let is_percentage = tokens.clone()[i - 1].clone().is_percentage();
+        let is_root = tokens.clone()[i - 1].clone().is_root();
 
-        if is_plus_or_minus || is_div_or_prod || is_percentage {
+        if is_plus_or_minus || is_div_or_prod || is_percentage || is_root {
             return Ok(tokens.clone()[i - 1].clone().typ);
         }
 
@@ -116,14 +117,15 @@ impl Calculator {
     //                      ╰─────────╯    ╰───╯
     fn execute_operation(x: f64, y: f64, operation: TokenType) -> f64 {
         let operations: HashMap<String, f64> = HashMap::from([
-            (TokenType::PLUS.to_string(), x + y),
-            (TokenType::MINUS.to_string(), x - y),
-            (TokenType::PRODUCT.to_string(), x * y),
-            (TokenType::DIVIDE.to_string(), x / y),
-            (TokenType::PERCENTAGE.to_string(), (x / 100.0) * y),
+            (TokenType::PLUS.to_string(0), x + y),
+            (TokenType::MINUS.to_string(0), x - y),
+            (TokenType::PRODUCT.to_string(0), x * y),
+            (TokenType::DIVIDE.to_string(0), x / y),
+            (TokenType::PERCENTAGE.to_string(0), (x / 100.0) * y),
+            (TokenType::ROOT.to_string(0), f64::powf(x, y)),
         ]);
 
-        match operations.get(&operation.to_string()) {
+        match operations.get(&operation.to_string(0)) {
             None => 0.0,
             Some(v) => v.clone(),
         }
@@ -150,6 +152,9 @@ mod tests {
             ("((10 - 5) - (10 / 2)) / 2", Ok(0.0)),
             ("(2 + 5) * (5 - 9 / (8 - 5)) + 5", Ok(19.0)),
             ("50 % 5", Ok(2.5)),
+            ("5 ^ 2", Ok(25.0)),
+            ("4 ^ 2 ^ 2 + 4", Ok(260.0)),
+            ("2(20 + 3 ^ 3) ^ 2 + 82", Ok(4500.0)),
         ]);
 
         for (input, expected) in test_data {

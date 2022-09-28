@@ -262,6 +262,7 @@ impl<'a> Lexer<'a> {
     fn combine_tokens(tokens: Vec<Token>) -> Vec<Token> {
         let mut combined_tokens: Vec<Token> = Vec::new();
         let mut sub_tokens: Vec<Token> = Vec::new();
+        let mut root_subs: Vec<Token> = Vec::new();
 
         // Combine products/divisions/parentheses as sub-expression.
         for i in 0..tokens.len() {
@@ -292,6 +293,24 @@ impl<'a> Lexer<'a> {
                 continue;
             }
 
+            // Collect root subs in different array to create a different sub expression with them.
+            // By doing that we gonna easily keep operation priority safe.
+            let is_root_sub = root_subs.len() > 0
+                && (current.is_number() || current.is_sub_exp() || current.is_root());
+            if is_root_sub || next.is_root() && (current.is_number() || current.is_sub_exp()) {
+                root_subs.push(current.clone());
+                continue;
+            }
+
+            if !root_subs.is_empty() {
+                sub_tokens.push(Token::new_sub(Lexer::combine_roots(
+                    root_subs.clone(),
+                    root_subs.clone().len() - 1,
+                )));
+
+                root_subs.clear();
+            }
+
             let current_is_combinable = current.is_div_or_prod() || current.is_percentage();
             let next_is_combinable = next.is_div_or_prod() || current.is_percentage();
             let is_sub = sub_tokens.len() > 0
@@ -299,26 +318,94 @@ impl<'a> Lexer<'a> {
 
             // Checks matching of new or exiting sub-token.
             if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp()) {
+                if !root_subs.is_empty() {
+                    sub_tokens.push(Token::new_sub(Lexer::combine_roots(
+                        root_subs.clone(),
+                        root_subs.len() - 1,
+                    )));
+                    root_subs.clear();
+                }
+
                 sub_tokens.push(current);
                 continue;
             }
 
-            if sub_tokens.len() > 0 {
-                combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+            if !sub_tokens.is_empty() {
+                if sub_tokens.len() == 1 && sub_tokens.clone()[0].is_sub_exp() {
+                    combined_tokens.append(&mut sub_tokens.clone());
+                } else {
+                    combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+                }
+
                 sub_tokens.clear()
             }
 
             combined_tokens.push(current);
         }
 
-        // Avoid appending sub-expression-token to empty tokens list.
+        if !root_subs.is_empty() {
+            if sub_tokens.is_empty() {
+                sub_tokens.append(&mut Lexer::combine_roots(
+                    root_subs.clone(),
+                    root_subs.len() - 1,
+                ));
+            } else {
+                sub_tokens.push(Token::new_sub(Lexer::combine_roots(
+                    root_subs.clone(),
+                    root_subs.len() - 1,
+                )))
+            }
+        }
+
         if combined_tokens.is_empty() {
             return sub_tokens;
-        } else if !sub_tokens.is_empty() {
-            combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+        }
+
+        // Avoid appending sub-expression-token to empty tokens list.
+        if !sub_tokens.is_empty() {
+            if sub_tokens.len() == 1 && sub_tokens.clone()[0].is_sub_exp() {
+                combined_tokens.append(&mut sub_tokens.clone()[0].sub_tokens);
+            } else {
+                combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+            }
         }
 
         return combined_tokens;
+    }
+
+    // Combines 1D sub expression root tokens to actual nested-root sub-expression vector.
+    //  For example: if given data is:
+    //   ╭────────────────╮                      ╭───────────────────╮
+    //   │ 5 ^ 2 ^ 3 ^ 2  │ it'd be converted to │ 5 ^ (2 ^ (3 ^ 2)) │
+    //   ╰────────────────╯                      ╰───────────────────╯
+    //  We have to start reading from the ending, that's why we nest roots to individual
+    //  sub-expression.
+    //  By doing that we make it easy to understood by calculator.
+    //  So, as a result it'd be resolved like:
+    //  ╭───────────────────╮     ╭─────────────╮     ╭─────────╮     ╭───╮
+    //  │ 5 ^ (2 ^ (3 ^ 2)) │ ──▶ │ 5 ^ (2 ^ 9) │ ──▶ │ 5 ^ 512 │ ──▶ │ ? │
+    //  ╰───────────────────╯     ╰─────────────╯     ╰─────────╯     ╰───╯
+    fn combine_roots(tokens: Vec<Token>, start: usize) -> Vec<Token> {
+        if tokens.len() == 3 {
+            return tokens;
+        }
+
+        let mut combined_tokens: Vec<Token> = Vec::new();
+
+        let end = start.clone() as i32 - 2;
+        if end < 0 {
+            return combined_tokens;
+        }
+
+        let cpart: Vec<Token> = tokens.clone()[end as usize..=start.clone()].to_vec();
+        combined_tokens.append(&mut tokens.clone()[..end as usize].to_vec());
+        combined_tokens.push(Token::new_sub(cpart));
+
+        if end <= 0 {
+            return combined_tokens;
+        }
+
+        Lexer::combine_roots(combined_tokens, end as usize)
     }
 
     // Converts byte-character to token-structure.
@@ -682,6 +769,58 @@ mod test {
                     ]),
                     Token::from(String::from("*")),
                     Token::from(String::from("11")),
+                ]),
+            ),
+            (
+                "5 ^ 3 ^ 2 ^ 5 * 19 - 50",
+                Ok(vec![
+                    Token::new_sub(vec![
+                        Token::new_sub(vec![
+                            Token::from(String::from("5")),
+                            Token::from(String::from("^")),
+                            Token::new_sub(vec![
+                                Token::from(String::from("3")),
+                                Token::from(String::from("^")),
+                                Token::new_sub(vec![
+                                    Token::from(String::from("2")),
+                                    Token::from(String::from("^")),
+                                    Token::from(String::from("5")),
+                                ]),
+                            ]),
+                        ]),
+                        Token::from(String::from("*")),
+                        Token::from(String::from("19")),
+                    ]),
+                    Token::from(String::from("-")),
+                    Token::from(String::from("50")),
+                ]),
+            ),
+            (
+                "5 ^ 3 ^ 19",
+                Ok(vec![
+                    Token::from(String::from("5")),
+                    Token::from(String::from("^")),
+                    Token::new_sub(vec![
+                        Token::from(String::from("3")),
+                        Token::from(String::from("^")),
+                        Token::from(String::from("19")),
+                    ]),
+                ]),
+            ),
+            (
+                "(2 + 3 ^ 5) ^ 9",
+                Ok(vec![
+                    Token::new_sub(vec![
+                        Token::from(String::from("2")),
+                        Token::from(String::from("+")),
+                        Token::new_sub(vec![
+                            Token::from(String::from("3")),
+                            Token::from(String::from("^")),
+                            Token::from(String::from("5")),
+                        ]),
+                    ]),
+                    Token::from(String::from("^")),
+                    Token::from(String::from("9")),
                 ]),
             ),
         ]);
