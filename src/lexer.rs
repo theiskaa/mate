@@ -262,6 +262,7 @@ impl<'a> Lexer<'a> {
     fn combine_tokens(tokens: Vec<Token>) -> Vec<Token> {
         let mut combined_tokens: Vec<Token> = Vec::new();
         let mut sub_tokens: Vec<Token> = Vec::new();
+        let mut root_subs: Vec<Token> = Vec::new();
 
         // Combine products/divisions/parentheses as sub-expression.
         for i in 0..tokens.len() {
@@ -292,6 +293,20 @@ impl<'a> Lexer<'a> {
                 continue;
             }
 
+            // Collect root subs in different array to create a different sub expression with them.
+            // By doing that we gonna easily keep operation priority safe.
+            let is_root_sub = root_subs.len() > 0
+                && (current.is_number() || current.is_sub_exp() || current.is_root());
+            if is_root_sub || next.is_root() && (current.is_number() || current.is_sub_exp()) {
+                root_subs.push(current.clone());
+                continue;
+            }
+
+            if !root_subs.is_empty() {
+                sub_tokens.push(Token::new_sub(root_subs.clone()));
+                root_subs.clear();
+            }
+
             let current_is_combinable = current.is_div_or_prod() || current.is_percentage();
             let next_is_combinable = next.is_div_or_prod() || current.is_percentage();
             let is_sub = sub_tokens.len() > 0
@@ -299,26 +314,66 @@ impl<'a> Lexer<'a> {
 
             // Checks matching of new or exiting sub-token.
             if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp()) {
+                if !root_subs.is_empty() {
+                    sub_tokens.push(Token::new_sub(root_subs.clone()));
+                    root_subs.clear();
+                }
+
                 sub_tokens.push(current);
                 continue;
             }
 
-            if sub_tokens.len() > 0 {
-                combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+            if !sub_tokens.is_empty() {
+                if sub_tokens.len() == 1 && sub_tokens.clone()[0].is_sub_exp() {
+                    combined_tokens.append(&mut sub_tokens.clone());
+                } else {
+                    combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+                }
+
                 sub_tokens.clear()
             }
 
             combined_tokens.push(current);
         }
 
-        // Avoid appending sub-expression-token to empty tokens list.
+        if !root_subs.is_empty() {
+            if sub_tokens.is_empty() {
+                sub_tokens.append(&mut root_subs);
+            } else {
+                sub_tokens.push(Token::new_sub(root_subs.clone()))
+            }
+        }
+
         if combined_tokens.is_empty() {
             return sub_tokens;
-        } else if !sub_tokens.is_empty() {
-            combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+        }
+
+        // Avoid appending sub-expression-token to empty tokens list.
+        if !sub_tokens.is_empty() {
+            if sub_tokens.len() == 1 && sub_tokens.clone()[0].is_sub_exp() {
+                combined_tokens.append(&mut sub_tokens.clone()[0].sub_tokens);
+            } else {
+                combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+            }
         }
 
         return combined_tokens;
+    }
+
+    // Combines 1D sub expression root tokens to actual nested-root sub-expression vector.
+    //  For example: if given data is:
+    //   ╭────────────────╮                      ╭───────────────────╮
+    //   │ 5 ^ 2 ^ 3 ^ 2  │ it'd be converted to │ 5 ^ (2 ^ (3 ^ 2)) │
+    //   ╰────────────────╯                      ╰───────────────────╯
+    //  We have to start reading from the ending, that's why we nest roots to individual
+    //  sub-expression.
+    //  By doing that we make it easy to understood by calculator.
+    //  So, as a result it'd be resolved like:
+    //  ╭───────────────────╮     ╭─────────────╮     ╭─────────╮     ╭───╮
+    //  │ 5 ^ (2 ^ (3 ^ 2)) │ ──▶ │ 5 ^ (2 ^ 9) │ ──▶ │ 5 ^ 512 │ ──▶ │ ? │
+    //  ╰───────────────────╯     ╰─────────────╯     ╰─────────╯     ╰───╯
+    fn combine_roots(tokens: Vec<Token>) -> Vec<Token> {
+        vec![]
     }
 
     // Converts byte-character to token-structure.
