@@ -303,7 +303,11 @@ impl<'a> Lexer<'a> {
             }
 
             if !root_subs.is_empty() {
-                sub_tokens.push(Token::new_sub(root_subs.clone()));
+                sub_tokens.push(Token::new_sub(Lexer::combine_roots(
+                    root_subs.clone(),
+                    root_subs.clone().len() - 1,
+                )));
+
                 root_subs.clear();
             }
 
@@ -315,7 +319,10 @@ impl<'a> Lexer<'a> {
             // Checks matching of new or exiting sub-token.
             if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp()) {
                 if !root_subs.is_empty() {
-                    sub_tokens.push(Token::new_sub(root_subs.clone()));
+                    sub_tokens.push(Token::new_sub(Lexer::combine_roots(
+                        root_subs.clone(),
+                        root_subs.len() - 1,
+                    )));
                     root_subs.clear();
                 }
 
@@ -338,9 +345,15 @@ impl<'a> Lexer<'a> {
 
         if !root_subs.is_empty() {
             if sub_tokens.is_empty() {
-                sub_tokens.append(&mut root_subs);
+                sub_tokens.append(&mut Lexer::combine_roots(
+                    root_subs.clone(),
+                    root_subs.len() - 1,
+                ));
             } else {
-                sub_tokens.push(Token::new_sub(root_subs.clone()))
+                sub_tokens.push(Token::new_sub(Lexer::combine_roots(
+                    root_subs.clone(),
+                    root_subs.len() - 1,
+                )))
             }
         }
 
@@ -372,8 +385,27 @@ impl<'a> Lexer<'a> {
     //  ╭───────────────────╮     ╭─────────────╮     ╭─────────╮     ╭───╮
     //  │ 5 ^ (2 ^ (3 ^ 2)) │ ──▶ │ 5 ^ (2 ^ 9) │ ──▶ │ 5 ^ 512 │ ──▶ │ ? │
     //  ╰───────────────────╯     ╰─────────────╯     ╰─────────╯     ╰───╯
-    fn combine_roots(tokens: Vec<Token>) -> Vec<Token> {
-        vec![]
+    fn combine_roots(tokens: Vec<Token>, start: usize) -> Vec<Token> {
+        if tokens.len() == 3 {
+            return tokens;
+        }
+
+        let mut combined_tokens: Vec<Token> = Vec::new();
+
+        let end = start.clone() as i32 - 2;
+        if end < 0 {
+            return combined_tokens;
+        }
+
+        let cpart: Vec<Token> = tokens.clone()[end as usize..=start.clone()].to_vec();
+        combined_tokens.append(&mut tokens.clone()[..end as usize].to_vec());
+        combined_tokens.push(Token::new_sub(cpart));
+
+        if end <= 0 {
+            return combined_tokens;
+        }
+
+        Lexer::combine_roots(combined_tokens, end as usize)
     }
 
     // Converts byte-character to token-structure.
