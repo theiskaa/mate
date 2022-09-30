@@ -45,7 +45,7 @@ pub trait ChUtils {
     //
     // Left Parentheses  --> (
     // Right Parentheses --> )
-    fn is_parentheses(&self) -> bool;
+    fn is_parentheses(&self) -> (bool, bool);
 
     // Checks if the given [%self] object is percentage sign or not.
     fn is_percentage(&self) -> bool;
@@ -75,8 +75,8 @@ impl ChUtils for String {
         self.is_plus_or_minus() || self.is_div_or_prod()
     }
 
-    fn is_parentheses(&self) -> bool {
-        self.trim().eq("(") || self.trim().eq(")")
+    fn is_parentheses(&self) -> (bool, bool) {
+        (self.trim().eq("("), self.trim().eq(")"))
     }
 
     fn is_percentage(&self) -> bool {
@@ -116,11 +116,11 @@ impl ChUtils for Token {
         self.is_plus_or_minus() || self.is_div_or_prod()
     }
 
-    fn is_parentheses(&self) -> bool {
+    fn is_parentheses(&self) -> (bool, bool) {
         match self.typ {
-            TokenType::LPAREN => true,
-            TokenType::RPAREN => true,
-            _ => false,
+            TokenType::LPAREN => (true, false),
+            TokenType::RPAREN => (false, true),
+            _ => (false, false),
         }
     }
 
@@ -228,16 +228,16 @@ mod tests {
 
     #[test]
     fn is_parentheses() {
-        let test_data: HashMap<String, bool> = HashMap::from([
-            (String::from("/"), false),
-            (String::from("*"), false),
-            (String::from(":"), false),
-            (String::from("‚Ä¢"), false),
-            (String::from("-"), false),
-            (String::from("+"), false),
-            (String::from("5"), false),
-            (String::from(")"), true),
-            (String::from("("), true),
+        let test_data: HashMap<String, (bool, bool)> = HashMap::from([
+            (String::from("/"), (false, false)),
+            (String::from("*"), (false, false)),
+            (String::from(":"), (false, false)),
+            (String::from("‚Ä¢"), (false, false)),
+            (String::from("-"), (false, false)),
+            (String::from("+"), (false, false)),
+            (String::from("5"), (false, false)),
+            (String::from(")"), (false, true)),
+            (String::from("("), (true, false)),
         ]);
 
         for (target, expected) in test_data {

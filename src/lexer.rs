@@ -579,8 +579,8 @@ impl<'a> Lexer<'a> {
             None => true, // if there is nothing in back, then it's free from number.
             Some(v) => {
                 if v != ' ' {
-                    let is_not_paren: bool = !v.to_string().is_parentheses();
-                    return is_not_paren && !v.to_string().is_number();
+                    let is_paren: (bool, bool) = v.to_string().is_parentheses();
+                    return !is_paren.1 && !v.to_string().is_number();
                 }
 
                 self.is_free_from_number(step + 1)
@@ -636,6 +636,16 @@ mod test {
     fn lex() {
         let test_data: HashMap<&str, Result<Vec<Token>, Error>> = HashMap::from([
             ("", Err(Error::new("Cannot lex an empty input"))),
+            ("25", Ok(vec![Token::from(String::from("25"))])),
+            ("-25", Ok(vec![Token::from(String::from("-25"))])),
+            (
+                "(25)",
+                Ok(vec![Token::new_sub(vec![Token::from(String::from("25"))])]),
+            ),
+            (
+                "(-25)",
+                Ok(vec![Token::new_sub(vec![Token::from(String::from("-25"))])]),
+            ),
             (
                 "-25 + 5",
                 Ok(vec![
