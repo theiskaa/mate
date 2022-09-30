@@ -5,10 +5,13 @@
 //
 
 use colored::Colorize;
-use mate_rs::mate::Mate;
+use mate_rs::{calculator::Calculator, lexer::Lexer, monitor::Monitor, token::Token};
 use std::io::{stdin, stdout, Write};
 
 fn main() {
+    // TODO: take me from command line arguments
+    let log_tokens: bool = true;
+
     loop {
         let mut input: String = String::new();
 
@@ -18,14 +21,37 @@ fn main() {
         match stdin().read_line(&mut input) {
             Err(e) => println!("{} {} \n", format!("[!]").bold().red(), e.to_string().red()),
             Ok(_) => {
-                let result = Mate::calculate(input.as_str());
+                let tokens: Vec<Token> = match Lexer::lex(input.as_str()) {
+                    Ok(tt) => tt,
+                    Err(e) => return print_err(e.to_string()),
+                };
+
+                if log_tokens {
+                    print_tokens(tokens.clone())
+                }
+
+                let result = Calculator::calculate(tokens.clone());
                 match result {
                     Ok(v) => println!("{} \n", v.to_string().green().bold()),
-                    Err(e) => {
-                        println!("{} {} \n", format!("[!]").bold().red(), e.to_string().red())
-                    }
+                    Err(e) => print_err(e.to_string()),
                 };
             }
         };
     }
+}
+
+fn print_err(msg: String) {
+    println!(
+        "{} {} \n",
+        format!("[!]").bold().red(),
+        msg.to_string().red()
+    )
+}
+
+fn print_tokens(tt: Vec<Token>) {
+    println!("---------------");
+    for t in tt.iter() {
+        println!("{}", t.to_string(0));
+    }
+    println!("---------------\n");
 }

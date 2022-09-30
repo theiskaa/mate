@@ -4,3 +4,4 @@
 /repl/target/
 Cargo.lock
 .DS_Store
+target/.rustc_info.jso
