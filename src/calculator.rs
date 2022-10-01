@@ -44,6 +44,10 @@ impl Calculator {
 
         let mut i: usize = 0;
         while i <= tokens.len() {
+            if i > tokens.len() - 1 {
+                return Err(Error::new("Missing some tokens to calculate result"));
+            }
+
             let token: Token = tokens[i].clone();
             if token.clone().is_illegal() {
                 return Err(Error::new("Found an illegal character token"));
