@@ -151,7 +151,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_number(), expected);
-            assert_eq!(Token::from(target).is_number(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_number(), expected);
         }
     }
 
@@ -184,7 +184,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_plus_or_minus(), expected);
-            assert_eq!(Token::from(target).is_plus_or_minus(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_plus_or_minus(), expected);
         }
     }
 
@@ -202,7 +202,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_div_or_prod(), expected);
-            assert_eq!(Token::from(target).is_div_or_prod(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_div_or_prod(), expected);
         }
     }
 
@@ -222,7 +222,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_operation_sign(), expected);
-            assert_eq!(Token::from(target).is_operation_sign(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_operation_sign(), expected);
         }
     }
 
@@ -242,7 +242,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_parentheses(), expected);
-            assert_eq!(Token::from(target).is_parentheses(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_parentheses(), expected);
         }
     }
 
@@ -257,7 +257,7 @@ mod tests {
 
         for (expected, data) in test_data {
             assert_eq!(expected, data.is_percentage());
-            assert_eq!(expected, Token::from(data).is_percentage());
+            assert_eq!(expected, Token::from(data, (0, 0)).is_percentage());
         }
     }
 }

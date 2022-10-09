@@ -67,11 +67,11 @@ mod tests {
     fn token_to_string() {
         let test_data: HashMap<String, String> = HashMap::from([
             (
-                Token::from(String::from("-25")).to_string(0),
+                Token::from(String::from("-25"), (0, 1)).to_string(0),
                 String::from("NUMBER(-25)"),
             ),
             (
-                Token::from(String::from("/")).to_string(0),
+                Token::from(String::from("/"), (0, 0)).to_string(0),
                 String::from("DIVIDE(/)"),
             ),
         ]);
