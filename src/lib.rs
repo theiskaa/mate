@@ -50,7 +50,8 @@ use mate_rs::{calculator::Calculator, lexer::Lexer};
 //  |        Token(type: NUMBER,  literal: "7")
 //  |   ],
 //  | ),
-let tokens = Lexer::lex(" - 2 + 2 + 6 * 7").unwrap(); // should handle error case also
+let input = " - 2 + 2 + 6 * 7";
+let tokens = Lexer::lex(input.clone()).unwrap(); // should handle error case also
 
 // Result will be calculated from tokens, by X/O/Y algorithm.
 //
@@ -61,7 +62,7 @@ let tokens = Lexer::lex(" - 2 + 2 + 6 * 7").unwrap(); // should handle error cas
 //           ▼       ▼        ▼
 //           X  [+, -, *, /]  Y
 //
-let result = Calculator::calculate(tokens);
+let result = Calculator::calculate(tokens, input.clone());
 
 match result {
     Ok(v) => assert_eq!(v, 42.0),

@@ -10,7 +10,7 @@ use std::io::{stdin, stdout, Write};
 
 fn main() {
     // TODO: take me from command line arguments
-    let log_tokens: bool = true;
+    let log_tokens: bool = false;
 
     loop {
         let mut input: String = String::new();
@@ -21,7 +21,7 @@ fn main() {
         match stdin().read_line(&mut input) {
             Err(e) => println!("{} {} \n", format!("[!]").bold().red(), e.to_string().red()),
             Ok(_) => {
-                let tokens: Vec<Token> = match Lexer::lex(input.as_str()) {
+                let tokens: Vec<Token> = match Lexer::lex(input.clone().as_str()) {
                     Ok(tt) => tt,
                     Err(e) => return print_err(e.to_string()),
                 };
@@ -30,7 +30,7 @@ fn main() {
                     print_tokens(tokens.clone())
                 }
 
-                let result = Calculator::calculate(tokens.clone());
+                let result = Calculator::calculate(tokens, &input.clone().as_str());
                 match result {
                     Ok(v) => println!("{} \n", v.to_string().green().bold()),
                     Err(e) => print_err(e.to_string()),

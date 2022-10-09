@@ -21,7 +21,7 @@ impl<'a> Lexer<'a> {
     // Basically used at [Lexer::lex] function.
     fn new(input: &'a str) -> Result<Lexer, Error> {
         if input.len() < 1 {
-            return Err(Error::new("Cannot lex an empty input"));
+            return Err(Error::empty_input());
         }
 
         Ok(Self {
@@ -86,7 +86,7 @@ impl<'a> Lexer<'a> {
                 None => break,
                 Some(r) => match r {
                     Err(e) => return Err(e),
-                    Ok(r) => tokens.push(r), // TODO: handle illegal tokens
+                    Ok(r) => tokens.push(r),
                 },
             }
         }
@@ -113,9 +113,7 @@ impl<'a> Lexer<'a> {
     //
     // By storing tokens by their nesting levels, makes it easy to understand and implement
     // parentheses expressions as sub-expressions.
-    fn nest_parentheses(
-        tokens: Vec<Token>,
-    ) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error<'a>> {
+    fn nest_parentheses(tokens: Vec<Token>) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error> {
         let mut nested: HashMap<usize, (Vec<Token>, bool)> = HashMap::new();
 
         let mut level: usize = 0;
@@ -134,7 +132,7 @@ impl<'a> Lexer<'a> {
                 nested.insert(0, base.clone());
 
                 match Lexer::take_till_end(tokens.clone(), i) {
-                    None => return Err(Error::new("TODO: find a appropriate error")),
+                    None => return Err(Error::new(String::from("TODO: find a appropriate error"))),
                     Some(v) => {
                         let mut new: (Vec<Token>, bool) = (vec![], v.2);
                         for t in v.0.iter() {
@@ -207,7 +205,7 @@ impl<'a> Lexer<'a> {
     fn break_nesting(
         point: usize,
         nested: HashMap<usize, (Vec<Token>, bool)>,
-    ) -> Result<Vec<Token>, Error<'a>> {
+    ) -> Result<Vec<Token>, Error> {
         let mut result: Vec<Token> = Vec::new();
 
         match nested.get(&point) {
@@ -422,7 +420,7 @@ impl<'a> Lexer<'a> {
     //
     //   ... and so on ...
     //
-    fn generate_token(&self) -> Option<Result<Token, Error<'a>>> {
+    fn generate_token(&self) -> Option<Result<Token, Error>> {
         self.skip_whitespace();
 
         let ch: String = self.examination_char.get().to_string();
@@ -627,7 +625,7 @@ mod test {
     #[test]
     fn new() {
         let test_data: HashMap<&str, Result<Lexer, Error>> = HashMap::from([
-            ("", Err(Error::new("Cannot lex an empty input"))),
+            ("", Err(Error::empty_input())),
             (
                 "4 + 2",
                 Ok(Lexer {
@@ -648,7 +646,7 @@ mod test {
     #[test]
     fn lex() {
         let test_data: HashMap<&str, Result<Vec<Token>, Error>> = HashMap::from([
-            ("", Err(Error::new("Cannot lex an empty input"))),
+            ("", Err(Error::empty_input())),
             ("25", Ok(vec![Token::from(String::from("25"), (0, 1))])),
             ("-25", Ok(vec![Token::from(String::from("-25"), (0, 2))])),
             (
