@@ -45,7 +45,8 @@ impl Calculator {
         let mut i: usize = 0;
         while i <= tokens.len() {
             if i > tokens.len() - 1 {
-                return Err(Error::missing_some_tokens());
+                let point = tokens.last().unwrap().index.1;
+                return Err(Error::missing_some_tokens(input.clone().to_string(), point));
             }
 
             let token: Token = tokens[i].clone();
@@ -64,7 +65,12 @@ impl Calculator {
             if token.clone().is_number() {
                 y = match token.clone().literal.as_str().parse::<f64>() {
                     Ok(v) => v,
-                    Err(_) => return Err(Error::cannot_parse_to_number()),
+                    Err(_) => {
+                        return Err(Error::cannot_parse_to_number(
+                            input.to_string(),
+                            token.clone(),
+                        ))
+                    }
                 };
             } else if token.clone().is_sub_exp() {
                 y = match Calculator::calculate(token.clone().sub_tokens, input.clone()) {
@@ -90,7 +96,8 @@ impl Calculator {
         }
 
         if tokens.len() - 1 < i - 1 {
-            return Err(Error::missing_some_tokens());
+            let point = tokens.last().unwrap().index.1;
+            return Err(Error::missing_some_tokens(input.clone().to_string(), point));
         }
 
         if tokens.clone()[i - 1].clone().is_illegal() {
