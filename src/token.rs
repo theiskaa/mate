@@ -30,15 +30,20 @@ pub struct Token {
     pub typ: TokenType,
     pub literal: String,
     pub sub_tokens: Vec<Token>,
+    // the index range of concrete token.
+    // [-1] represents the unknown index.
+    // left side is the starting point and right side is ending point.
+    pub index: (i32, i32),
 }
 
 impl Token {
     // Define a new Token value by providing all fields.
-    pub fn new(typ: TokenType, literal: String, sub_tokens: Vec<Token>) -> Self {
+    pub fn new(typ: TokenType, literal: String, sub_tokens: Vec<Token>, index: (i32, i32)) -> Self {
         Self {
             typ,
             literal,
             sub_tokens,
+            index,
         }
     }
 
@@ -48,6 +53,7 @@ impl Token {
             typ: TokenType::SUBEXP,
             literal: String::new(),
             sub_tokens,
+            index: Token::unknown_index(),
         }
     }
 
@@ -58,12 +64,13 @@ impl Token {
             typ: TokenType::POINTER,
             literal: format!("{}", i),
             sub_tokens: Vec::new(),
+            index: Token::unknown_index(),
         }
     }
 
     // Create a new token model from a literal.
     // The type is decided automatically by checking it.
-    pub fn from(mut literal: String) -> Self {
+    pub fn from(mut literal: String, index: (i32, i32)) -> Self {
         let typ: TokenType;
 
         if literal.is_number() {
@@ -91,7 +98,13 @@ impl Token {
             typ,
             literal,
             sub_tokens: Vec::new(),
+            index,
         };
+    }
+
+    // Returns the default unknown index representation.
+    pub fn unknown_index() -> (i32, i32) {
+        (-1, -1)
     }
 
     // Takes the pointer's index as [usize].
@@ -168,34 +181,44 @@ mod tests {
                 typ: TokenType::PLUS,
                 literal: String::from("+"),
                 sub_tokens: Vec::new(),
+                index: (0, 0),
             },
             Token {
                 typ: TokenType::MINUS,
                 literal: String::from("-"),
                 sub_tokens: Vec::new(),
+                index: (1, 1),
             },
             Token {
                 typ: TokenType::DIVIDE,
                 literal: String::from("/"),
                 sub_tokens: Vec::new(),
+                index: (2, 2),
             },
             Token {
                 typ: TokenType::SUBEXP,
                 literal: String::from(""),
                 sub_tokens: Vec::from([
-                    Token::from(String::from("2")),
-                    Token::from(String::from("+")),
-                    Token::from(String::from("5")),
+                    Token::from(String::from("2"), (0, 0)),
+                    Token::from(String::from("+"), (1, 1)),
+                    Token::from(String::from("5"), (2, 2)),
                 ]),
+                index: (0, 2),
             },
         ];
 
         for t in test_data {
-            let res = Token::new(t.clone().typ, t.clone().literal, t.clone().sub_tokens);
+            let res = Token::new(
+                t.clone().typ,
+                t.clone().literal,
+                t.clone().sub_tokens,
+                t.clone().index,
+            );
 
             assert_eq!(res.typ, t.clone().typ);
             assert_eq!(res.literal, t.clone().literal);
             assert_eq!(res.sub_tokens, t.clone().sub_tokens);
+            assert_eq!(res.index, t.clone().index);
         }
     }
 
@@ -208,10 +231,11 @@ mod tests {
                     typ: TokenType::SUBEXP,
                     literal: String::new(),
                     sub_tokens: vec![
-                        Token::from(String::from("4")),
-                        Token::from(String::from("+")),
-                        Token::from(String::from("2")),
+                        Token::from(String::from("4"), (0, 0)),
+                        Token::from(String::from("+"), (0, 0)),
+                        Token::from(String::from("2"), (0, 0)),
                     ],
+                    index: Token::unknown_index(),
                 },
             ),
             (
@@ -220,21 +244,23 @@ mod tests {
                     typ: TokenType::SUBEXP,
                     literal: String::new(),
                     sub_tokens: vec![
-                        Token::from(String::from("2")),
-                        Token::from(String::from("+")),
-                        Token::from(String::from("+")),
+                        Token::from(String::from("2"), (0, 0)),
+                        Token::from(String::from("+"), (0, 0)),
+                        Token::from(String::from("+"), (0, 0)),
                     ],
+                    index: Token::unknown_index(),
                 },
             ),
         ]);
 
         for (t, expected) in test_data {
-            let tokens = t.into_iter().map(|tt| Token::from(tt)).collect();
+            let tokens = t.into_iter().map(|tt| Token::from(tt, (0, 0))).collect();
             let res = Token::new_sub(tokens);
 
             assert_eq!(res.typ, expected.clone().typ);
             assert_eq!(res.literal, expected.clone().literal);
             assert_eq!(res.sub_tokens, expected.clone().sub_tokens);
+            assert_eq!(res.index, expected.clone().index);
         }
     }
 
@@ -243,11 +269,11 @@ mod tests {
         let test_data: HashMap<usize, Token> = HashMap::from([
             (
                 0,
-                Token::new(TokenType::POINTER, String::from("0"), Vec::new()),
+                Token::new(TokenType::POINTER, String::from("0"), Vec::new(), (-1, -1)),
             ),
             (
                 99,
-                Token::new(TokenType::POINTER, String::from("99"), Vec::new()),
+                Token::new(TokenType::POINTER, String::from("99"), Vec::new(), (-1, -1)),
             ),
         ]);
 
@@ -259,56 +285,61 @@ mod tests {
 
     #[test]
     fn from() {
-        let test_data: HashMap<String, Token> = HashMap::from([
+        let test_data: HashMap<(String, (i32, i32)), Token> = HashMap::from([
             (
-                String::from("42"),
-                Token::new(TokenType::NUMBER, String::from("42"), Vec::new()),
+                (String::from("42"), (0, 1)),
+                Token::new(TokenType::NUMBER, String::from("42"), Vec::new(), (0, 1)),
             ),
             (
-                String::from("}"),
-                Token::new(TokenType::ILLEGAL, String::from("}"), Vec::new()),
+                (String::from("}"), (0, 0)),
+                Token::new(TokenType::ILLEGAL, String::from("}"), Vec::new(), (0, 0)),
             ),
             (
-                String::from("+"),
-                Token::new(TokenType::PLUS, String::from("+"), Vec::new()),
+                (String::from("+"), (0, 0)),
+                Token::new(TokenType::PLUS, String::from("+"), Vec::new(), (0, 0)),
             ),
             (
-                String::from("-"),
-                Token::new(TokenType::MINUS, String::from("-"), Vec::new()),
+                (String::from("-"), (0, 0)),
+                Token::new(TokenType::MINUS, String::from("-"), Vec::new(), (0, 0)),
             ),
             (
-                String::from("*"),
-                Token::new(TokenType::PRODUCT, String::from("*"), Vec::new()),
+                (String::from("*"), (0, 0)),
+                Token::new(TokenType::PRODUCT, String::from("*"), Vec::new(), (0, 0)),
             ),
             (
-                String::from("•"),
-                Token::new(TokenType::PRODUCT, String::from("•"), Vec::new()),
+                (String::from("•"), (0, 0)),
+                Token::new(TokenType::PRODUCT, String::from("•"), Vec::new(), (0, 0)),
             ),
             (
-                String::from("/"),
-                Token::new(TokenType::DIVIDE, String::from("/"), Vec::new()),
+                (String::from("/"), (0, 0)),
+                Token::new(TokenType::DIVIDE, String::from("/"), Vec::new(), (0, 0)),
             ),
             (
-                String::from(":"),
-                Token::new(TokenType::DIVIDE, String::from(":"), Vec::new()),
+                (String::from(":"), (0, 0)),
+                Token::new(TokenType::DIVIDE, String::from(":"), Vec::new(), (0, 0)),
             ),
             (
-                String::from("%"),
-                Token::new(TokenType::PERCENTAGE, String::from("%"), Vec::new()),
+                (String::from("%"), (0, 0)),
+                Token::new(TokenType::PERCENTAGE, String::from("%"), Vec::new(), (0, 0)),
             ),
         ]);
 
-        for (literal, expected) in test_data {
-            let res = Token::from(literal);
+        for (v, expected) in test_data {
+            let res = Token::from(v.0, v.1);
             assert_eq!(res, expected);
         }
     }
 
     #[test]
+    fn unknown_index() {
+        assert_eq!(Token::unknown_index(), (-1, -1));
+    }
+
+    #[test]
     fn take_pointer_index() {
         let test_data: HashMap<Option<usize>, Token> = HashMap::from([
-            (None, Token::from(String::from("25"))),
-            (None, Token::from(String::from("-"))),
+            (None, Token::from(String::from("25"), (0, 1))),
+            (None, Token::from(String::from("-"), (0, 0))),
             (Some(0), Token::new_pointer(0)),
             (Some(9), Token::new_pointer(9)),
         ]);
@@ -321,10 +352,10 @@ mod tests {
     #[test]
     fn is_illegal() {
         let test_data: HashMap<bool, Token> = HashMap::from([
-            (false, Token::from(String::from("-25"))),
-            (false, Token::from(String::from("-"))),
-            (true, Token::from(String::from("}"))),
-            (true, Token::from(String::from("["))),
+            (false, Token::from(String::from("-25"), (0, 1))),
+            (false, Token::from(String::from("-"), (0, 0))),
+            (true, Token::from(String::from("}"), (0, 0))),
+            (true, Token::from(String::from("["), (0, 0))),
         ]);
 
         for (expected, token) in test_data {
@@ -335,10 +366,10 @@ mod tests {
     #[test]
     fn is_lparen() {
         let test_data: HashMap<bool, Token> = HashMap::from([
-            (false, Token::from(String::from("-25"))),
-            (false, Token::from(String::from("-"))),
-            (false, Token::from(String::from(")"))),
-            (true, Token::from(String::from("("))),
+            (false, Token::from(String::from("-25"), (0, 1))),
+            (false, Token::from(String::from("-"), (0, 0))),
+            (false, Token::from(String::from(")"), (0, 0))),
+            (true, Token::from(String::from("("), (0, 0))),
         ]);
 
         for (expected, token) in test_data {
@@ -349,10 +380,10 @@ mod tests {
     #[test]
     fn is_rparen() {
         let test_data: HashMap<bool, Token> = HashMap::from([
-            (false, Token::from(String::from("-25"))),
-            (false, Token::from(String::from("-"))),
-            (false, Token::from(String::from("("))),
-            (true, Token::from(String::from(")"))),
+            (false, Token::from(String::from("-25"), (0, 1))),
+            (false, Token::from(String::from("-"), (0, 0))),
+            (false, Token::from(String::from("("), (0, 0))),
+            (true, Token::from(String::from(")"), (0, 0))),
         ]);
 
         for (expected, token) in test_data {
@@ -363,9 +394,9 @@ mod tests {
     #[test]
     fn is_pointer() {
         let test_data: HashMap<bool, Token> = HashMap::from([
-            (false, Token::from(String::from("-25"))),
-            (false, Token::from(String::from("-"))),
-            (false, Token::from(String::from("("))),
+            (false, Token::from(String::from("-25"), (0, 1))),
+            (false, Token::from(String::from("-"), (0, 0))),
+            (false, Token::from(String::from("("), (0, 0))),
             (true, Token::new_pointer(0)),
         ]);
 
@@ -377,9 +408,9 @@ mod tests {
     #[test]
     fn is_sub_exp() {
         let test_data: HashMap<bool, Token> = HashMap::from([
-            (false, Token::from(String::from("-25"))),
-            (false, Token::from(String::from("-"))),
-            (false, Token::from(String::from("("))),
+            (false, Token::from(String::from("-25"), (0, 1))),
+            (false, Token::from(String::from("-"), (0, 0))),
+            (false, Token::from(String::from("("), (0, 0))),
             (true, Token::new_sub(vec![])),
         ]);
 
@@ -391,10 +422,10 @@ mod tests {
     #[test]
     fn is_root() {
         let test_data: HashMap<bool, Token> = HashMap::from([
-            (false, Token::from(String::from("-25"))),
-            (false, Token::from(String::from("-"))),
-            (false, Token::from(String::from("("))),
-            (true, Token::from(String::from("^"))),
+            (false, Token::from(String::from("-25"), (0, 1))),
+            (false, Token::from(String::from("-"), (0, 0))),
+            (false, Token::from(String::from("("), (0, 0))),
+            (true, Token::from(String::from("^"), (0, 0))),
         ]);
 
         for (expected, token) in test_data {

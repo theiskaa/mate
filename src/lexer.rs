@@ -21,7 +21,7 @@ impl<'a> Lexer<'a> {
     // Basically used at [Lexer::lex] function.
     fn new(input: &'a str) -> Result<Lexer, Error> {
         if input.len() < 1 {
-            return Err(Error::new("Cannot lex an empty input"));
+            return Err(Error::empty_input());
         }
 
         Ok(Self {
@@ -86,7 +86,7 @@ impl<'a> Lexer<'a> {
                 None => break,
                 Some(r) => match r {
                     Err(e) => return Err(e),
-                    Ok(r) => tokens.push(r), // TODO: handle illegal tokens
+                    Ok(r) => tokens.push(r),
                 },
             }
         }
@@ -113,9 +113,7 @@ impl<'a> Lexer<'a> {
     //
     // By storing tokens by their nesting levels, makes it easy to understand and implement
     // parentheses expressions as sub-expressions.
-    fn nest_parentheses(
-        tokens: Vec<Token>,
-    ) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error<'a>> {
+    fn nest_parentheses(tokens: Vec<Token>) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error> {
         let mut nested: HashMap<usize, (Vec<Token>, bool)> = HashMap::new();
 
         let mut level: usize = 0;
@@ -134,7 +132,7 @@ impl<'a> Lexer<'a> {
                 nested.insert(0, base.clone());
 
                 match Lexer::take_till_end(tokens.clone(), i) {
-                    None => return Err(Error::new("TODO: find a appropriate error")),
+                    None => return Err(Error::new(String::from("TODO: find a appropriate error"))),
                     Some(v) => {
                         let mut new: (Vec<Token>, bool) = (vec![], v.2);
                         for t in v.0.iter() {
@@ -207,7 +205,7 @@ impl<'a> Lexer<'a> {
     fn break_nesting(
         point: usize,
         nested: HashMap<usize, (Vec<Token>, bool)>,
-    ) -> Result<Vec<Token>, Error<'a>> {
+    ) -> Result<Vec<Token>, Error> {
         let mut result: Vec<Token> = Vec::new();
 
         match nested.get(&point) {
@@ -271,7 +269,7 @@ impl<'a> Lexer<'a> {
             if i < tokens.len() - 1 {
                 next = tokens[i + 1].clone();
             } else {
-                next = Token::from(String::new());
+                next = Token::from(String::new(), Token::unknown_index());
             }
 
             let is_auto_solids = current.is_number() && next.is_number()
@@ -288,7 +286,7 @@ impl<'a> Lexer<'a> {
             if is_auto_solids || is_auto_mixings {
                 sub_tokens.append(&mut Vec::from([
                     current.clone(),
-                    Token::from(String::from("*")),
+                    Token::from(String::from("*"), Token::unknown_index()),
                 ]));
                 continue;
             }
@@ -422,15 +420,16 @@ impl<'a> Lexer<'a> {
     //
     //   ... and so on ...
     //
-    fn generate_token(&self) -> Option<Result<Token, Error<'a>>> {
+    fn generate_token(&self) -> Option<Result<Token, Error>> {
         self.skip_whitespace();
 
         let ch: String = self.examination_char.get().to_string();
+        let position: i32 = self.position.get() as i32;
         if ch.is_operation_sign() {
             if ch.is_plus_or_minus() && self.is_free_from_number(1) && self.next_is_number(1) {
                 match self.read_number() {
                     None => return None,
-                    Some(v) => return Some(Ok(Token::from(v))),
+                    Some(v) => return Some(Ok(Token::from(v.0, v.1))),
                 }
             }
 
@@ -438,14 +437,14 @@ impl<'a> Lexer<'a> {
                 return None;
             };
 
-            return Some(Ok(Token::from(ch)));
+            return Some(Ok(Token::from(ch, (position, position))));
         }
 
         // Check for a positive number.
         if ch.is_number() || ch.is_point() {
             match self.read_number() {
                 None => return None,
-                Some(v) => return Some(Ok(Token::from(v))),
+                Some(v) => return Some(Ok(Token::from(v.0, v.1))),
             }
         }
 
@@ -454,7 +453,7 @@ impl<'a> Lexer<'a> {
             return None;
         }
 
-        Some(Ok(Token::from(lit)))
+        Some(Ok(Token::from(lit, (position, position))))
     }
 
     // A [char] reading functionality, that also updates state of lexer.
@@ -493,7 +492,7 @@ impl<'a> Lexer<'a> {
     //   We need to determine the start and end index
     //   of that full-number in rune array (from digit to digit).
     //
-    fn read_number(&self) -> Option<String> {
+    fn read_number(&self) -> Option<(String, (i32, i32))> {
         let input: String = self.input.to_string();
         let start: usize = self.position.get();
 
@@ -524,7 +523,19 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        Some(input.substring(start, self.position.get()).to_string())
+        let num = input.substring(start, self.position.get()).to_string();
+        let end = match num.chars().last() {
+            None => self.position.get(),
+            Some(v) => {
+                if v != ' ' {
+                    self.position.get() - 1
+                } else {
+                    self.position.get() - 2
+                }
+            }
+        };
+
+        Some((num, (start as i32, end as i32)))
     }
 
     // Eats all type of empty(white) spaces.
@@ -614,7 +625,7 @@ mod test {
     #[test]
     fn new() {
         let test_data: HashMap<&str, Result<Lexer, Error>> = HashMap::from([
-            ("", Err(Error::new("Cannot lex an empty input"))),
+            ("", Err(Error::empty_input())),
             (
                 "4 + 2",
                 Ok(Lexer {
@@ -635,57 +646,63 @@ mod test {
     #[test]
     fn lex() {
         let test_data: HashMap<&str, Result<Vec<Token>, Error>> = HashMap::from([
-            ("", Err(Error::new("Cannot lex an empty input"))),
-            ("25", Ok(vec![Token::from(String::from("25"))])),
-            ("-25", Ok(vec![Token::from(String::from("-25"))])),
+            ("", Err(Error::empty_input())),
+            ("25", Ok(vec![Token::from(String::from("25"), (0, 1))])),
+            ("-25", Ok(vec![Token::from(String::from("-25"), (0, 2))])),
             (
                 "(25)",
-                Ok(vec![Token::new_sub(vec![Token::from(String::from("25"))])]),
+                Ok(vec![Token::new_sub(vec![Token::from(
+                    String::from("25"),
+                    (1, 2),
+                )])]),
             ),
             (
                 "(-25)",
-                Ok(vec![Token::new_sub(vec![Token::from(String::from("-25"))])]),
+                Ok(vec![Token::new_sub(vec![Token::from(
+                    String::from("-25"),
+                    (1, 3),
+                )])]),
             ),
             (
                 "-25 + 5",
                 Ok(vec![
-                    Token::from(String::from("-25")),
-                    Token::from(String::from("+")),
-                    Token::from(String::from("5")),
+                    Token::from(String::from("-25"), (0, 2)),
+                    Token::from(String::from("+"), (4, 4)),
+                    Token::from(String::from("5"), (6, 6)),
                 ]),
             ),
             (
                 "- - 2 + - 5",
                 Ok(vec![
-                    Token::from(String::from("-")),
-                    Token::from(String::from("-2")),
-                    Token::from(String::from("+")),
-                    Token::from(String::from("-5")),
+                    Token::from(String::from("-"), (0, 0)),
+                    Token::from(String::from("-2"), (2, 4)),
+                    Token::from(String::from("+"), (6, 6)),
+                    Token::from(String::from("-5"), (8, 10)),
                 ]),
             ),
             (
                 "42 * 5",
                 Ok(vec![
-                    Token::from(String::from("42")),
-                    Token::from(String::from("*")),
-                    Token::from(String::from("5")),
+                    Token::from(String::from("42"), (0, 1)),
+                    Token::from(String::from("*"), (3, 3)),
+                    Token::from(String::from("5"), (5, 5)),
                 ]),
             ),
             (
                 "- 2 * 7 / 5 + - 20 / - 5",
                 Ok(vec![
                     Token::new_sub(vec![
-                        Token::from(String::from("-2")),
-                        Token::from(String::from("*")),
-                        Token::from(String::from("7")),
-                        Token::from(String::from("/")),
-                        Token::from(String::from("5")),
+                        Token::from(String::from("-2"), (0, 2)),
+                        Token::from(String::from("*"), (4, 4)),
+                        Token::from(String::from("7"), (6, 6)),
+                        Token::from(String::from("/"), (8, 8)),
+                        Token::from(String::from("5"), (10, 10)),
                     ]),
-                    Token::from(String::from("+")),
+                    Token::from(String::from("+"), (12, 12)),
                     Token::new_sub(vec![
-                        Token::from(String::from("-20")),
-                        Token::from(String::from("/")),
-                        Token::from(String::from("-5")),
+                        Token::from(String::from("-20"), (14, 17)),
+                        Token::from(String::from("/"), (19, 19)),
+                        Token::from(String::from("-5"), (21, 23)),
                     ]),
                 ]),
             ),
@@ -693,27 +710,27 @@ mod test {
                 "(5 - 9) - 10",
                 Ok(vec![
                     Token::new_sub(vec![
-                        Token::from(String::from("5")),
-                        Token::from(String::from("-")),
-                        Token::from(String::from("9")),
+                        Token::from(String::from("5"), (1, 1)),
+                        Token::from(String::from("-"), (3, 3)),
+                        Token::from(String::from("9"), (5, 5)),
                     ]),
-                    Token::from(String::from("-")),
-                    Token::from(String::from("10")),
+                    Token::from(String::from("-"), (8, 8)),
+                    Token::from(String::from("10"), (10, 11)),
                 ]),
             ),
             (
                 "(10 - 5) - (10 / 2)",
                 Ok(vec![
                     Token::new_sub(vec![
-                        Token::from(String::from("10")),
-                        Token::from(String::from("-")),
-                        Token::from(String::from("5")),
+                        Token::from(String::from("10"), (1, 2)),
+                        Token::from(String::from("-"), (4, 4)),
+                        Token::from(String::from("5"), (6, 6)),
                     ]),
-                    Token::from(String::from("-")),
+                    Token::from(String::from("-"), (9, 9)),
                     Token::new_sub(vec![
-                        Token::from(String::from("10")),
-                        Token::from(String::from("/")),
-                        Token::from(String::from("2")),
+                        Token::from(String::from("10"), (12, 13)),
+                        Token::from(String::from("/"), (15, 15)),
+                        Token::from(String::from("2"), (17, 17)),
                     ]),
                 ]),
             ),
@@ -722,40 +739,40 @@ mod test {
                 Ok(vec![
                     Token::new_sub(vec![
                         Token::new_sub(vec![
-                            Token::from(String::from("10")),
-                            Token::from(String::from("-")),
-                            Token::from(String::from("5")),
+                            Token::from(String::from("10"), (2, 3)),
+                            Token::from(String::from("-"), (5, 5)),
+                            Token::from(String::from("5"), (7, 7)),
                         ]),
-                        Token::from(String::from("-")),
+                        Token::from(String::from("-"), (10, 10)),
                         Token::new_sub(vec![
-                            Token::from(String::from("10")),
-                            Token::from(String::from("/")),
-                            Token::from(String::from("2")),
+                            Token::from(String::from("10"), (13, 14)),
+                            Token::from(String::from("/"), (16, 16)),
+                            Token::from(String::from("2"), (18, 18)),
                         ]),
                     ]),
-                    Token::from(String::from("/")),
-                    Token::from(String::from("2")),
+                    Token::from(String::from("/"), (22, 22)),
+                    Token::from(String::from("2"), (24, 24)),
                 ]),
             ),
             (
                 "(2 + 5) * (5 - 9 / (8 - 5))",
                 Ok(vec![
                     Token::new_sub(vec![
-                        Token::from(String::from("2")),
-                        Token::from(String::from("+")),
-                        Token::from(String::from("5")),
+                        Token::from(String::from("2"), (1, 1)),
+                        Token::from(String::from("+"), (3, 3)),
+                        Token::from(String::from("5"), (5, 5)),
                     ]),
-                    Token::from(String::from("*")),
+                    Token::from(String::from("*"), (8, 8)),
                     Token::new_sub(vec![
-                        Token::from(String::from("5")),
-                        Token::from(String::from("-")),
+                        Token::from(String::from("5"), (11, 11)),
+                        Token::from(String::from("-"), (13, 13)),
                         Token::new_sub(vec![
-                            Token::from(String::from("9")),
-                            Token::from(String::from("/")),
+                            Token::from(String::from("9"), (15, 15)),
+                            Token::from(String::from("/"), (17, 17)),
                             Token::new_sub(vec![
-                                Token::from(String::from("8")),
-                                Token::from(String::from("-")),
-                                Token::from(String::from("5")),
+                                Token::from(String::from("8"), (20, 20)),
+                                Token::from(String::from("-"), (22, 22)),
+                                Token::from(String::from("5"), (24, 24)),
                             ]),
                         ]),
                     ]),
@@ -764,21 +781,21 @@ mod test {
             (
                 "5(5 / 2)(9 * 3)11",
                 Ok(vec![
-                    Token::from(String::from("5")),
-                    Token::from(String::from("*")),
+                    Token::from(String::from("5"), (0, 0)),
+                    Token::from(String::from("*"), Token::unknown_index()),
                     Token::new_sub(vec![
-                        Token::from(String::from("5")),
-                        Token::from(String::from("/")),
-                        Token::from(String::from("2")),
+                        Token::from(String::from("5"), (2, 2)),
+                        Token::from(String::from("/"), (4, 4)),
+                        Token::from(String::from("2"), (6, 6)),
                     ]),
-                    Token::from(String::from("*")),
+                    Token::from(String::from("*"), Token::unknown_index()),
                     Token::new_sub(vec![
-                        Token::from(String::from("9")),
-                        Token::from(String::from("*")),
-                        Token::from(String::from("3")),
+                        Token::from(String::from("9"), (9, 9)),
+                        Token::from(String::from("*"), (11, 11)),
+                        Token::from(String::from("3"), (13, 13)),
                     ]),
-                    Token::from(String::from("*")),
-                    Token::from(String::from("11")),
+                    Token::from(String::from("*"), Token::unknown_index()),
+                    Token::from(String::from("11"), (15, 16)),
                 ]),
             ),
             (
@@ -786,34 +803,34 @@ mod test {
                 Ok(vec![
                     Token::new_sub(vec![
                         Token::new_sub(vec![
-                            Token::from(String::from("5")),
-                            Token::from(String::from("^")),
+                            Token::from(String::from("5"), (0, 0)),
+                            Token::from(String::from("^"), (2, 2)),
                             Token::new_sub(vec![
-                                Token::from(String::from("3")),
-                                Token::from(String::from("^")),
+                                Token::from(String::from("3"), (4, 4)),
+                                Token::from(String::from("^"), (6, 6)),
                                 Token::new_sub(vec![
-                                    Token::from(String::from("2")),
-                                    Token::from(String::from("^")),
-                                    Token::from(String::from("5")),
+                                    Token::from(String::from("2"), (8, 8)),
+                                    Token::from(String::from("^"), (10, 10)),
+                                    Token::from(String::from("5"), (12, 12)),
                                 ]),
                             ]),
                         ]),
-                        Token::from(String::from("*")),
-                        Token::from(String::from("19")),
+                        Token::from(String::from("*"), (14, 14)),
+                        Token::from(String::from("19"), (16, 17)),
                     ]),
-                    Token::from(String::from("-")),
-                    Token::from(String::from("50")),
+                    Token::from(String::from("-"), (19, 19)),
+                    Token::from(String::from("50"), (21, 22)),
                 ]),
             ),
             (
                 "5 ^ 3 ^ 19",
                 Ok(vec![
-                    Token::from(String::from("5")),
-                    Token::from(String::from("^")),
+                    Token::from(String::from("5"), (0, 0)),
+                    Token::from(String::from("^"), (2, 2)),
                     Token::new_sub(vec![
-                        Token::from(String::from("3")),
-                        Token::from(String::from("^")),
-                        Token::from(String::from("19")),
+                        Token::from(String::from("3"), (4, 4)),
+                        Token::from(String::from("^"), (6, 6)),
+                        Token::from(String::from("19"), (8, 9)),
                     ]),
                 ]),
             ),
@@ -821,16 +838,16 @@ mod test {
                 "(2 + 3 ^ 5) ^ 9",
                 Ok(vec![
                     Token::new_sub(vec![
-                        Token::from(String::from("2")),
-                        Token::from(String::from("+")),
+                        Token::from(String::from("2"), (1, 1)),
+                        Token::from(String::from("+"), (3, 3)),
                         Token::new_sub(vec![
-                            Token::from(String::from("3")),
-                            Token::from(String::from("^")),
-                            Token::from(String::from("5")),
+                            Token::from(String::from("3"), (5, 5)),
+                            Token::from(String::from("^"), (7, 7)),
+                            Token::from(String::from("5"), (9, 9)),
                         ]),
                     ]),
-                    Token::from(String::from("^")),
-                    Token::from(String::from("9")),
+                    Token::from(String::from("^"), (12, 12)),
+                    Token::from(String::from("9"), (14, 14)),
                 ]),
             ),
         ]);

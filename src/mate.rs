@@ -19,6 +19,6 @@ impl Mate {
             Ok(v) => v,
         };
 
-        Calculator::calculate(tokens)
+        Calculator::calculate(tokens, input.clone())
     }
 }
