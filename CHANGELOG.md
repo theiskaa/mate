@@ -1,6 +1,6 @@
 # v0.1.3
 The fourth version of mate.
-Implemented functionality to parse and calculate root power expressions.
+Implemented functionality to parse and calculate power expressions.
 
 - **Pull Request:** [#20](https://github.com/theiskaa/mate/pull/20)
 

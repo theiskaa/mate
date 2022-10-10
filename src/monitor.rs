@@ -51,7 +51,7 @@ impl Monitor for TokenType {
             TokenType::PRODUCT => "PRODUCT",
             TokenType::DIVIDE => "DIVIDE",
             TokenType::PERCENTAGE => "PERCENTAGE",
-            TokenType::ROOT => "ROOT",
+            TokenType::POWER => "POWER",
         };
 
         String::from(data)
@@ -95,7 +95,7 @@ mod tests {
             (TokenType::PRODUCT.to_string(0), "PRODUCT"),
             (TokenType::DIVIDE.to_string(0), "DIVIDE"),
             (TokenType::PERCENTAGE.to_string(0), "PERCENTAGE"),
-            (TokenType::ROOT.to_string(0), "ROOT"),
+            (TokenType::POWER.to_string(0), "POWER"),
         ]);
 
         for (tt, expected) in test_data {

@@ -21,7 +21,7 @@ pub enum TokenType {
     PRODUCT,
     DIVIDE,
     PERCENTAGE,
-    ROOT,
+    POWER,
 }
 
 // A small-block representing structure of lexer's input.
@@ -86,7 +86,7 @@ impl Token {
                 "(" => TokenType::LPAREN,
                 ")" => TokenType::RPAREN,
                 "%" => TokenType::PERCENTAGE,
-                "^" => TokenType::ROOT,
+                "^" => TokenType::POWER,
                 _ => TokenType::ILLEGAL,
             }
         }
@@ -160,10 +160,10 @@ impl Token {
         }
     }
 
-    // Checks if pointed token's type is root or not.
-    pub fn is_root(&self) -> bool {
+    // Checks if pointed token's type is POWER or not.
+    pub fn is_power(&self) -> bool {
         match self.typ {
-            TokenType::ROOT => true,
+            TokenType::POWER => true,
             _ => false,
         }
     }
@@ -420,7 +420,7 @@ mod tests {
     }
 
     #[test]
-    fn is_root() {
+    fn is_power() {
         let test_data: HashMap<bool, Token> = HashMap::from([
             (false, Token::from(String::from("-25"), (0, 1))),
             (false, Token::from(String::from("-"), (0, 0))),
@@ -429,7 +429,7 @@ mod tests {
         ]);
 
         for (expected, token) in test_data {
-            assert_eq!(expected, token.is_root());
+            assert_eq!(expected, token.is_power());
         }
     }
 }

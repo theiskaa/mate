@@ -260,7 +260,7 @@ impl<'a> Lexer<'a> {
     fn combine_tokens(tokens: Vec<Token>) -> Vec<Token> {
         let mut combined_tokens: Vec<Token> = Vec::new();
         let mut sub_tokens: Vec<Token> = Vec::new();
-        let mut root_subs: Vec<Token> = Vec::new();
+        let mut power_subs: Vec<Token> = Vec::new();
 
         // Combine products/divisions/parentheses as sub-expression.
         for i in 0..tokens.len() {
@@ -291,22 +291,22 @@ impl<'a> Lexer<'a> {
                 continue;
             }
 
-            // Collect root subs in different array to create a different sub expression with them.
+            // Collect power subs in different array to create a different sub expression with them.
             // By doing that we gonna easily keep operation priority safe.
-            let is_root_sub = root_subs.len() > 0
-                && (current.is_number() || current.is_sub_exp() || current.is_root());
-            if is_root_sub || next.is_root() && (current.is_number() || current.is_sub_exp()) {
-                root_subs.push(current.clone());
+            let is_power_sub = power_subs.len() > 0
+                && (current.is_number() || current.is_sub_exp() || current.is_power());
+            if is_power_sub || next.is_power() && (current.is_number() || current.is_sub_exp()) {
+                power_subs.push(current.clone());
                 continue;
             }
 
-            if !root_subs.is_empty() {
-                sub_tokens.push(Token::new_sub(Lexer::combine_roots(
-                    root_subs.clone(),
-                    root_subs.clone().len() - 1,
+            if !power_subs.is_empty() {
+                sub_tokens.push(Token::new_sub(Lexer::combine_powers(
+                    power_subs.clone(),
+                    power_subs.clone().len() - 1,
                 )));
 
-                root_subs.clear();
+                power_subs.clear();
             }
 
             let current_is_combinable = current.is_div_or_prod() || current.is_percentage();
@@ -316,12 +316,12 @@ impl<'a> Lexer<'a> {
 
             // Checks matching of new or exiting sub-token.
             if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp()) {
-                if !root_subs.is_empty() {
-                    sub_tokens.push(Token::new_sub(Lexer::combine_roots(
-                        root_subs.clone(),
-                        root_subs.len() - 1,
+                if !power_subs.is_empty() {
+                    sub_tokens.push(Token::new_sub(Lexer::combine_powers(
+                        power_subs.clone(),
+                        power_subs.len() - 1,
                     )));
-                    root_subs.clear();
+                    power_subs.clear();
                 }
 
                 sub_tokens.push(current);
@@ -341,16 +341,16 @@ impl<'a> Lexer<'a> {
             combined_tokens.push(current);
         }
 
-        if !root_subs.is_empty() {
+        if !power_subs.is_empty() {
             if sub_tokens.is_empty() {
-                sub_tokens.append(&mut Lexer::combine_roots(
-                    root_subs.clone(),
-                    root_subs.len() - 1,
+                sub_tokens.append(&mut Lexer::combine_powers(
+                    power_subs.clone(),
+                    power_subs.len() - 1,
                 ));
             } else {
-                sub_tokens.push(Token::new_sub(Lexer::combine_roots(
-                    root_subs.clone(),
-                    root_subs.len() - 1,
+                sub_tokens.push(Token::new_sub(Lexer::combine_powers(
+                    power_subs.clone(),
+                    power_subs.len() - 1,
                 )))
             }
         }
@@ -371,19 +371,19 @@ impl<'a> Lexer<'a> {
         return combined_tokens;
     }
 
-    // Combines 1D sub expression root tokens to actual nested-root sub-expression vector.
+    // Combines 1D sub expression power tokens to actual nested-power sub-expression vector.
     //  For example: if given data is:
     //   ╭────────────────╮                      ╭───────────────────╮
     //   │ 5 ^ 2 ^ 3 ^ 2  │ it'd be converted to │ 5 ^ (2 ^ (3 ^ 2)) │
     //   ╰────────────────╯                      ╰───────────────────╯
-    //  We have to start reading from the ending, that's why we nest roots to individual
+    //  We have to start reading from the ending, that's why we nest powers to individual
     //  sub-expression.
     //  By doing that we make it easy to understood by calculator.
     //  So, as a result it'd be resolved like:
     //  ╭───────────────────╮     ╭─────────────╮     ╭─────────╮     ╭───╮
     //  │ 5 ^ (2 ^ (3 ^ 2)) │ ──▶ │ 5 ^ (2 ^ 9) │ ──▶ │ 5 ^ 512 │ ──▶ │ ? │
     //  ╰───────────────────╯     ╰─────────────╯     ╰─────────╯     ╰───╯
-    fn combine_roots(tokens: Vec<Token>, start: usize) -> Vec<Token> {
+    fn combine_powers(tokens: Vec<Token>, start: usize) -> Vec<Token> {
         if tokens.len() == 3 {
             return tokens;
         }
@@ -403,7 +403,7 @@ impl<'a> Lexer<'a> {
             return combined_tokens;
         }
 
-        Lexer::combine_roots(combined_tokens, end as usize)
+        Lexer::combine_powers(combined_tokens, end as usize)
     }
 
     // Converts byte-character to token-structure.

@@ -110,9 +110,9 @@ impl Calculator {
         let is_plus_or_minus = tokens.clone()[i - 1].clone().is_plus_or_minus();
         let is_div_or_prod = tokens.clone()[i - 1].clone().is_div_or_prod();
         let is_percentage = tokens.clone()[i - 1].clone().is_percentage();
-        let is_root = tokens.clone()[i - 1].clone().is_root();
+        let is_power = tokens.clone()[i - 1].clone().is_power();
 
-        if is_plus_or_minus || is_div_or_prod || is_percentage || is_root {
+        if is_plus_or_minus || is_div_or_prod || is_percentage || is_power {
             return Ok(tokens.clone()[i - 1].clone().typ);
         }
 
@@ -136,7 +136,7 @@ impl Calculator {
             (TokenType::PRODUCT.to_string(0), x * y),
             (TokenType::DIVIDE.to_string(0), x / y),
             (TokenType::PERCENTAGE.to_string(0), (x / 100.0) * y),
-            (TokenType::ROOT.to_string(0), f64::powf(x, y)),
+            (TokenType::POWER.to_string(0), f64::powf(x, y)),
         ]);
 
         match operations.get(&operation.to_string(0)) {
