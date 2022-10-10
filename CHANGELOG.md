@@ -2,9 +2,9 @@
 The fourth version of mate.
 Implemented functionality to parse and calculate root power expressions.
 
-- **Pull Request:** [#20](https://github.como/theiskaa/mate/pull/20)
+- **Pull Request:** [#20](https://github.com/theiskaa/mate/pull/20)
 
-- **H-E that versions has ability to solve**: `5 ^ 2` -> *25``*
+- **H-E that versions has ability to solve**: `5 ^ 2` -> *`25`*
 
 # v0.1.2
 The third version of mate.
