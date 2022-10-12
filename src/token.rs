@@ -20,11 +20,12 @@ pub struct Sub {
 
 impl Sub {
     // Generate a new sub structure data.
-    fn new(tokens: Vec<Token>, method: SubMethod) -> Self {
+    pub fn new(tokens: Vec<Token>, method: SubMethod) -> Self {
         Self { tokens, method }
     }
 
-    fn empty() -> Self {
+    // Generates a empty representation of token's sub element.
+    pub fn empty() -> Self {
         Self {
             tokens: Vec::new(),
             method: SubMethod::PAREN,
@@ -78,11 +79,11 @@ pub struct Token {
 impl TokenType {
     // A function to get valid sub-method from token type.
     //
-    // - TokenType::ABS is SubMethod::ABS,
-    // - TokenType::PAREN is SubMethod::PAREN,
+    // - [TokenType::ABS] is [SubMethod::ABS].
+    // - [TokenType::LPAREN] & [TokenType::RPAREN] is [SubMethod::PAREN].
     pub fn to_submethod(&self) -> SubMethod {
         match self {
-            ABS => SubMethod::ABS,
+            TokenType::ABS => SubMethod::ABS,
             _ => SubMethod::PAREN, // + LPAREN, RPAREN
         }
     }
@@ -153,6 +154,17 @@ impl Token {
             sub: Sub::empty(),
             index,
         };
+    }
+
+    // A function to get valid sub-method from token.
+    //
+    // - If [self.typ] is [ABS] is [SubMethod::ABS].
+    // - If [self.typ] is [LPAREN] or [RPAREN] is [SubMethod::PAREN].
+    pub fn to_submethod(&self) -> SubMethod {
+        match &self.typ {
+            TokenType::ABS => SubMethod::ABS,
+            _ => SubMethod::PAREN, // + LPAREN, RPAREN
+        }
     }
 
     // Returns the default unknown index representation.
@@ -249,7 +261,7 @@ mod tests {
         ];
 
         for sub in test_data {
-            let res = Sub::new(sub.tokens, sub.method);
+            let res = Sub::new(sub.clone().tokens, sub.clone().method);
             assert_eq!(res, sub)
         }
     }
@@ -397,7 +409,7 @@ mod tests {
         ]);
 
         for (i, expected) in test_data {
-            let token: Token = Token::new_pointer(i, expected.sub.method);
+            let token: Token = Token::new_pointer(i, expected.clone().sub.method);
             assert_eq!(token, expected);
         }
     }

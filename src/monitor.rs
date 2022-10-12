@@ -4,7 +4,7 @@
 // that can be found in the LICENSE file.
 //
 
-use crate::token::{Token, TokenType};
+use crate::token::{Sub, SubMethod, Token, TokenType};
 
 pub trait Monitor {
     // Converts the [&self] object to the
@@ -32,7 +32,12 @@ impl Monitor for Token {
             space.push_str("  ");
         }
 
-        format!("{}{}{}", space.as_str(), self.typ.to_string(0), lit)
+        let mut typstr = self.typ.to_string(0);
+        if self.is_sub_exp() {
+            typstr.push_str(format!(" -> {{{}}}", self.sub.to_string(0)).as_str());
+        }
+
+        format!("{}{}{}", space.as_str(), typstr, lit)
     }
 }
 
@@ -53,6 +58,30 @@ impl Monitor for TokenType {
             TokenType::PERCENTAGE => "PERCENTAGE",
             TokenType::POWER => "POWER",
             TokenType::ABS => "ABS",
+        };
+
+        String::from(data)
+    }
+}
+
+// A monitor debugger implementation for [Sub].
+impl Monitor for Sub {
+    fn to_string(&self, _n: usize) -> String {
+        let data = match &self.method {
+            SubMethod::ABS => "ABSOLUTE-VALUE",
+            SubMethod::PAREN => "PARENTHESES",
+        };
+
+        String::from(data)
+    }
+}
+
+// A monitor debugger implementation for [SubMethod].
+impl Monitor for SubMethod {
+    fn to_string(&self, _n: usize) -> String {
+        let data = match self {
+            SubMethod::ABS => "ABSOLUTE-VALUE",
+            SubMethod::PAREN => "PARENTHESES",
         };
 
         String::from(data)
@@ -102,6 +131,36 @@ mod tests {
 
         for (tt, expected) in test_data {
             assert_eq!(tt, expected);
+        }
+    }
+
+    #[test]
+    fn sub_to_string() {
+        let test_data: HashMap<String, &str> = HashMap::from([
+            (
+                Sub::new(Vec::new(), SubMethod::PAREN).to_string(0),
+                "PARENTHESES",
+            ),
+            (
+                Sub::new(Vec::new(), SubMethod::ABS).to_string(0),
+                "ABSOLUTE-VALUE",
+            ),
+        ]);
+
+        for (s, expected) in test_data {
+            assert_eq!(s, expected);
+        }
+    }
+
+    #[test]
+    fn sub_type_to_string() {
+        let test_data: HashMap<String, &str> = HashMap::from([
+            (SubMethod::PAREN.to_string(0), "PARENTHESES"),
+            (SubMethod::ABS.to_string(0), "ABSOLUTE-VALUE"),
+        ]);
+
+        for (s, expected) in test_data {
+            assert_eq!(s, expected);
         }
     }
 }
