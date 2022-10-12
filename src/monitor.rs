@@ -23,7 +23,7 @@ impl Monitor for Token {
             lit = format!("({})", self.literal.to_string());
         } else {
             lit = String::new();
-            for t in self.sub_tokens.iter().map(|t| t.to_string(nest + 1)) {
+            for t in self.sub.tokens.iter().map(|t| t.to_string(nest + 1)) {
                 lit.push_str(format!("\n{}", t).as_str())
             }
         }
@@ -52,6 +52,7 @@ impl Monitor for TokenType {
             TokenType::DIVIDE => "DIVIDE",
             TokenType::PERCENTAGE => "PERCENTAGE",
             TokenType::POWER => "POWER",
+            TokenType::ABS => "ABS",
         };
 
         String::from(data)
@@ -96,6 +97,7 @@ mod tests {
             (TokenType::DIVIDE.to_string(0), "DIVIDE"),
             (TokenType::PERCENTAGE.to_string(0), "PERCENTAGE"),
             (TokenType::POWER.to_string(0), "POWER"),
+            (TokenType::ABS.to_string(0), "ABS"),
         ]);
 
         for (tt, expected) in test_data {

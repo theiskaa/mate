@@ -7,13 +7,52 @@
 use crate::utils::ChUtils;
 
 #[derive(Clone, Debug, PartialEq)]
+// The structure model for high level sub expression implementations.
+// For example: in case of parentheses and combinable
+// operations(*, /, %) method have to be [PAREN].
+// Or, in case of absolute values the method have to be [ABS],
+// to let calculator know the approach it has to take to
+// return final result of concrete sub tokens.
+pub struct Sub {
+    pub tokens: Vec<Token>,
+    pub method: SubMethod,
+}
+
+impl Sub {
+    // Generate a new sub structure data.
+    fn new(tokens: Vec<Token>, method: SubMethod) -> Self {
+        Self { tokens, method }
+    }
+
+    fn empty() -> Self {
+        Self {
+            tokens: Vec::new(),
+            method: SubMethod::PAREN,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+// The method type of sub expression -> [Sub].
+// Used to decide the final calculation method of sub expression tokens.
+// For example, in case of [PAREN] the result will be default result of calculated [tokens].
+// Or, in case of [ABS] the result always gonna be positive value.
+pub enum SubMethod {
+    PAREN,
+    ABS,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     NUMBER,
+    ILLEGAL,
+    POINTER,
+
+    // Sub related tokens
     SUBEXP,
     LPAREN,
     RPAREN,
-    ILLEGAL,
-    POINTER,
+    ABS,
 
     // Operations
     PLUS,
@@ -24,46 +63,59 @@ pub enum TokenType {
     POWER,
 }
 
-// A small-block representing structure of lexer's input.
 #[derive(Clone, Debug, PartialEq)]
+// The main structure of input's each parsed character.
 pub struct Token {
     pub typ: TokenType,
     pub literal: String,
-    pub sub_tokens: Vec<Token>,
+    pub sub: Sub,
     // the index range of concrete token.
     // [-1] represents the unknown index.
     // left side is the starting point and right side is ending point.
     pub index: (i32, i32),
 }
 
+impl TokenType {
+    // A function to get valid sub-method from token type.
+    //
+    // - TokenType::ABS is SubMethod::ABS,
+    // - TokenType::PAREN is SubMethod::PAREN,
+    pub fn to_submethod(&self) -> SubMethod {
+        match self {
+            ABS => SubMethod::ABS,
+            _ => SubMethod::PAREN, // + LPAREN, RPAREN
+        }
+    }
+}
+
 impl Token {
     // Define a new Token value by providing all fields.
-    pub fn new(typ: TokenType, literal: String, sub_tokens: Vec<Token>, index: (i32, i32)) -> Self {
+    pub fn new(typ: TokenType, literal: String, sub: Sub, index: (i32, i32)) -> Self {
         Self {
             typ,
             literal,
-            sub_tokens,
+            sub,
             index,
         }
     }
 
     // Create a new sub token model with just sub tokens.
-    pub fn new_sub(sub_tokens: Vec<Token>) -> Self {
+    pub fn new_sub(tokens: Vec<Token>, method: SubMethod) -> Self {
         Self {
             typ: TokenType::SUBEXP,
             literal: String::new(),
-            sub_tokens,
+            sub: Sub { tokens, method },
             index: Token::unknown_index(),
         }
     }
 
     // Creates a pointer token, that newer will be used
     // at normal token result.
-    pub fn new_pointer(i: usize) -> Self {
+    pub fn new_pointer(i: usize, method: SubMethod) -> Self {
         Self {
             typ: TokenType::POINTER,
             literal: format!("{}", i),
-            sub_tokens: Vec::new(),
+            sub: Sub::new(Vec::new(), method),
             index: Token::unknown_index(),
         }
     }
@@ -87,6 +139,7 @@ impl Token {
                 ")" => TokenType::RPAREN,
                 "%" => TokenType::PERCENTAGE,
                 "^" => TokenType::POWER,
+                "|" => TokenType::ABS,
                 _ => TokenType::ILLEGAL,
             }
         }
@@ -97,7 +150,7 @@ impl Token {
         return Self {
             typ,
             literal,
-            sub_tokens: Vec::new(),
+            sub: Sub::empty(),
             index,
         };
     }
@@ -167,6 +220,14 @@ impl Token {
             _ => false,
         }
     }
+
+    // Checks if pointed token's type is ABS or not.
+    pub fn is_abs(&self) -> bool {
+        match self.typ {
+            TokenType::ABS => true,
+            _ => false,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -175,34 +236,76 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
+    fn new_sub_struct() {
+        let test_data: Vec<Sub> = vec![
+            Sub {
+                tokens: Vec::new(),
+                method: SubMethod::PAREN,
+            },
+            Sub {
+                tokens: Vec::new(),
+                method: SubMethod::ABS,
+            },
+        ];
+
+        for sub in test_data {
+            let res = Sub::new(sub.tokens, sub.method);
+            assert_eq!(res, sub)
+        }
+    }
+
+    #[test]
+    fn empty() {
+        let test_data: Vec<Sub> = vec![Sub {
+            tokens: Vec::new(),
+            method: SubMethod::PAREN,
+        }];
+
+        for sub in test_data {
+            let res = Sub::empty();
+            assert_eq!(res, sub)
+        }
+    }
+
+    #[test]
+    fn to_submethod() {
+        assert_eq!(TokenType::ABS.to_submethod(), SubMethod::ABS);
+        assert_eq!(TokenType::LPAREN.to_submethod(), SubMethod::PAREN);
+        assert_eq!(TokenType::RPAREN.to_submethod(), SubMethod::PAREN);
+    }
+
+    #[test]
     fn new() {
         let test_data: Vec<Token> = vec![
             Token {
                 typ: TokenType::PLUS,
                 literal: String::from("+"),
-                sub_tokens: Vec::new(),
+                sub: Sub::empty(),
                 index: (0, 0),
             },
             Token {
                 typ: TokenType::MINUS,
                 literal: String::from("-"),
-                sub_tokens: Vec::new(),
+                sub: Sub::empty(),
                 index: (1, 1),
             },
             Token {
                 typ: TokenType::DIVIDE,
                 literal: String::from("/"),
-                sub_tokens: Vec::new(),
+                sub: Sub::empty(),
                 index: (2, 2),
             },
             Token {
                 typ: TokenType::SUBEXP,
                 literal: String::from(""),
-                sub_tokens: Vec::from([
-                    Token::from(String::from("2"), (0, 0)),
-                    Token::from(String::from("+"), (1, 1)),
-                    Token::from(String::from("5"), (2, 2)),
-                ]),
+                sub: Sub::new(
+                    Vec::from([
+                        Token::from(String::from("2"), (0, 0)),
+                        Token::from(String::from("+"), (1, 1)),
+                        Token::from(String::from("5"), (2, 2)),
+                    ]),
+                    SubMethod::PAREN,
+                ),
                 index: (0, 2),
             },
         ];
@@ -211,13 +314,13 @@ mod tests {
             let res = Token::new(
                 t.clone().typ,
                 t.clone().literal,
-                t.clone().sub_tokens,
+                t.clone().sub,
                 t.clone().index,
             );
 
             assert_eq!(res.typ, t.clone().typ);
             assert_eq!(res.literal, t.clone().literal);
-            assert_eq!(res.sub_tokens, t.clone().sub_tokens);
+            assert_eq!(res.sub, t.clone().sub);
             assert_eq!(res.index, t.clone().index);
         }
     }
@@ -230,11 +333,14 @@ mod tests {
                 Token {
                     typ: TokenType::SUBEXP,
                     literal: String::new(),
-                    sub_tokens: vec![
-                        Token::from(String::from("4"), (0, 0)),
-                        Token::from(String::from("+"), (0, 0)),
-                        Token::from(String::from("2"), (0, 0)),
-                    ],
+                    sub: Sub::new(
+                        Vec::from([
+                            Token::from(String::from("4"), (0, 0)),
+                            Token::from(String::from("+"), (0, 0)),
+                            Token::from(String::from("2"), (0, 0)),
+                        ]),
+                        SubMethod::PAREN,
+                    ),
                     index: Token::unknown_index(),
                 },
             ),
@@ -243,11 +349,14 @@ mod tests {
                 Token {
                     typ: TokenType::SUBEXP,
                     literal: String::new(),
-                    sub_tokens: vec![
-                        Token::from(String::from("2"), (0, 0)),
-                        Token::from(String::from("+"), (0, 0)),
-                        Token::from(String::from("+"), (0, 0)),
-                    ],
+                    sub: Sub::new(
+                        Vec::from([
+                            Token::from(String::from("2"), (0, 0)),
+                            Token::from(String::from("+"), (0, 0)),
+                            Token::from(String::from("+"), (0, 0)),
+                        ]),
+                        SubMethod::PAREN,
+                    ),
                     index: Token::unknown_index(),
                 },
             ),
@@ -255,11 +364,11 @@ mod tests {
 
         for (t, expected) in test_data {
             let tokens = t.into_iter().map(|tt| Token::from(tt, (0, 0))).collect();
-            let res = Token::new_sub(tokens);
+            let res = Token::new_sub(tokens, SubMethod::PAREN);
 
             assert_eq!(res.typ, expected.clone().typ);
             assert_eq!(res.literal, expected.clone().literal);
-            assert_eq!(res.sub_tokens, expected.clone().sub_tokens);
+            assert_eq!(res.sub, expected.clone().sub);
             assert_eq!(res.index, expected.clone().index);
         }
     }
@@ -269,16 +378,26 @@ mod tests {
         let test_data: HashMap<usize, Token> = HashMap::from([
             (
                 0,
-                Token::new(TokenType::POINTER, String::from("0"), Vec::new(), (-1, -1)),
+                Token::new(
+                    TokenType::POINTER,
+                    String::from("0"),
+                    Sub::new(Vec::new(), SubMethod::PAREN),
+                    (-1, -1),
+                ),
             ),
             (
                 99,
-                Token::new(TokenType::POINTER, String::from("99"), Vec::new(), (-1, -1)),
+                Token::new(
+                    TokenType::POINTER,
+                    String::from("99"),
+                    Sub::new(Vec::new(), SubMethod::ABS),
+                    (-1, -1),
+                ),
             ),
         ]);
 
         for (i, expected) in test_data {
-            let token: Token = Token::new_pointer(i);
+            let token: Token = Token::new_pointer(i, expected.sub.method);
             assert_eq!(token, expected);
         }
     }
@@ -288,39 +407,44 @@ mod tests {
         let test_data: HashMap<(String, (i32, i32)), Token> = HashMap::from([
             (
                 (String::from("42"), (0, 1)),
-                Token::new(TokenType::NUMBER, String::from("42"), Vec::new(), (0, 1)),
+                Token::new(TokenType::NUMBER, String::from("42"), Sub::empty(), (0, 1)),
             ),
             (
                 (String::from("}"), (0, 0)),
-                Token::new(TokenType::ILLEGAL, String::from("}"), Vec::new(), (0, 0)),
+                Token::new(TokenType::ILLEGAL, String::from("}"), Sub::empty(), (0, 0)),
             ),
             (
                 (String::from("+"), (0, 0)),
-                Token::new(TokenType::PLUS, String::from("+"), Vec::new(), (0, 0)),
+                Token::new(TokenType::PLUS, String::from("+"), Sub::empty(), (0, 0)),
             ),
             (
                 (String::from("-"), (0, 0)),
-                Token::new(TokenType::MINUS, String::from("-"), Vec::new(), (0, 0)),
+                Token::new(TokenType::MINUS, String::from("-"), Sub::empty(), (0, 0)),
             ),
             (
                 (String::from("*"), (0, 0)),
-                Token::new(TokenType::PRODUCT, String::from("*"), Vec::new(), (0, 0)),
+                Token::new(TokenType::PRODUCT, String::from("*"), Sub::empty(), (0, 0)),
             ),
             (
                 (String::from("•"), (0, 0)),
-                Token::new(TokenType::PRODUCT, String::from("•"), Vec::new(), (0, 0)),
+                Token::new(TokenType::PRODUCT, String::from("•"), Sub::empty(), (0, 0)),
             ),
             (
                 (String::from("/"), (0, 0)),
-                Token::new(TokenType::DIVIDE, String::from("/"), Vec::new(), (0, 0)),
+                Token::new(TokenType::DIVIDE, String::from("/"), Sub::empty(), (0, 0)),
             ),
             (
                 (String::from(":"), (0, 0)),
-                Token::new(TokenType::DIVIDE, String::from(":"), Vec::new(), (0, 0)),
+                Token::new(TokenType::DIVIDE, String::from(":"), Sub::empty(), (0, 0)),
             ),
             (
                 (String::from("%"), (0, 0)),
-                Token::new(TokenType::PERCENTAGE, String::from("%"), Vec::new(), (0, 0)),
+                Token::new(
+                    TokenType::PERCENTAGE,
+                    String::from("%"),
+                    Sub::empty(),
+                    (0, 0),
+                ),
             ),
         ]);
 
@@ -340,8 +464,8 @@ mod tests {
         let test_data: HashMap<Option<usize>, Token> = HashMap::from([
             (None, Token::from(String::from("25"), (0, 1))),
             (None, Token::from(String::from("-"), (0, 0))),
-            (Some(0), Token::new_pointer(0)),
-            (Some(9), Token::new_pointer(9)),
+            (Some(0), Token::new_pointer(0, SubMethod::PAREN)),
+            (Some(9), Token::new_pointer(9, SubMethod::PAREN)),
         ]);
 
         for (expected, token) in test_data {
@@ -397,7 +521,7 @@ mod tests {
             (false, Token::from(String::from("-25"), (0, 1))),
             (false, Token::from(String::from("-"), (0, 0))),
             (false, Token::from(String::from("("), (0, 0))),
-            (true, Token::new_pointer(0)),
+            (true, Token::new_pointer(0, SubMethod::PAREN)),
         ]);
 
         for (expected, token) in test_data {
@@ -411,7 +535,7 @@ mod tests {
             (false, Token::from(String::from("-25"), (0, 1))),
             (false, Token::from(String::from("-"), (0, 0))),
             (false, Token::from(String::from("("), (0, 0))),
-            (true, Token::new_sub(vec![])),
+            (true, Token::new_sub(vec![], SubMethod::PAREN)),
         ]);
 
         for (expected, token) in test_data {
