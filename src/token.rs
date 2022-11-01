@@ -6,13 +6,13 @@
 
 use crate::utils::ChUtils;
 
-#[derive(Clone, Debug, PartialEq)]
 // The structure model for high level sub expression implementations.
 // For example: in case of parentheses and combinable
 // operations(*, /, %) method have to be [PAREN].
 // Or, in case of absolute values the method have to be [ABS],
 // to let calculator know the approach it has to take to
 // return final result of concrete sub tokens.
+#[derive(Clone, Debug, PartialEq)]
 pub struct Sub {
     pub tokens: Vec<Token>,
     pub method: SubMethod,
@@ -33,11 +33,11 @@ impl Sub {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
 // The method type of sub expression -> [Sub].
 // Used to decide the final calculation method of sub expression tokens.
 // For example, in case of [PAREN] the result will be default result of calculated [tokens].
 // Or, in case of [ABS] the result always gonna be positive value.
+#[derive(Clone, Debug, PartialEq)]
 pub enum SubMethod {
     PAREN,
     ABS,
@@ -53,7 +53,8 @@ pub enum TokenType {
     SUBEXP,
     LPAREN,
     RPAREN,
-    ABS,
+    LABS,
+    RABS,
 
     // Operations
     PLUS,
@@ -64,8 +65,8 @@ pub enum TokenType {
     POWER,
 }
 
-#[derive(Clone, Debug, PartialEq)]
 // The main structure of input's each parsed character.
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub typ: TokenType,
     pub literal: String,
@@ -83,7 +84,8 @@ impl TokenType {
     // - [TokenType::LPAREN] & [TokenType::RPAREN] is [SubMethod::PAREN].
     pub fn to_submethod(&self) -> SubMethod {
         match self {
-            TokenType::ABS => SubMethod::ABS,
+            TokenType::LABS => SubMethod::ABS,
+            TokenType::RABS => SubMethod::ABS,
             _ => SubMethod::PAREN, // + LPAREN, RPAREN
         }
     }
@@ -140,7 +142,8 @@ impl Token {
                 ")" => TokenType::RPAREN,
                 "%" => TokenType::PERCENTAGE,
                 "^" => TokenType::POWER,
-                "|" => TokenType::ABS,
+                "[" => TokenType::LABS,
+                "]" => TokenType::RABS,
                 _ => TokenType::ILLEGAL,
             }
         }
@@ -162,7 +165,8 @@ impl Token {
     // - If [self.typ] is [LPAREN] or [RPAREN] is [SubMethod::PAREN].
     pub fn to_submethod(&self) -> SubMethod {
         match &self.typ {
-            TokenType::ABS => SubMethod::ABS,
+            TokenType::LABS => SubMethod::ABS,
+            TokenType::RABS => SubMethod::ABS,
             _ => SubMethod::PAREN, // + LPAREN, RPAREN
         }
     }
@@ -233,10 +237,18 @@ impl Token {
         }
     }
 
-    // Checks if pointed token's type is ABS or not.
-    pub fn is_abs(&self) -> bool {
+    // Checks if pointed token's type is LABS or not.
+    pub fn is_labs(&self) -> bool {
         match self.typ {
-            TokenType::ABS => true,
+            TokenType::LABS => true,
+            _ => false,
+        }
+    }
+
+    // Checks if pointed token's type is RABS or not.
+    pub fn is_rabs(&self) -> bool {
+        match self.typ {
+            TokenType::RABS => true,
             _ => false,
         }
     }
@@ -281,7 +293,8 @@ mod tests {
 
     #[test]
     fn to_submethod() {
-        assert_eq!(TokenType::ABS.to_submethod(), SubMethod::ABS);
+        assert_eq!(TokenType::LABS.to_submethod(), SubMethod::ABS);
+        assert_eq!(TokenType::RABS.to_submethod(), SubMethod::ABS);
         assert_eq!(TokenType::LPAREN.to_submethod(), SubMethod::PAREN);
         assert_eq!(TokenType::RPAREN.to_submethod(), SubMethod::PAREN);
     }
@@ -566,6 +579,34 @@ mod tests {
 
         for (expected, token) in test_data {
             assert_eq!(expected, token.is_power());
+        }
+    }
+
+    #[test]
+    fn is_labs() {
+        let test_data: HashMap<bool, Token> = HashMap::from([
+            (false, Token::from(String::from("-25"), (0, 1))),
+            (false, Token::from(String::from("-"), (0, 0))),
+            (false, Token::from(String::from("]"), (0, 0))),
+            (true, Token::from(String::from("["), (0, 0))),
+        ]);
+
+        for (expected, token) in test_data {
+            assert_eq!(expected, token.is_labs());
+        }
+    }
+
+    #[test]
+    fn is_rabs() {
+        let test_data: HashMap<bool, Token> = HashMap::from([
+            (false, Token::from(String::from("-25"), (0, 1))),
+            (false, Token::from(String::from("-"), (0, 0))),
+            (false, Token::from(String::from("["), (0, 0))),
+            (true, Token::from(String::from("]"), (0, 0))),
+        ]);
+
+        for (expected, token) in test_data {
+            assert_eq!(expected, token.is_rabs());
         }
     }
 }
