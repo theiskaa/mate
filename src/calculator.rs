@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use crate::{
     errors::Error,
     monitor::Monitor,
-    token::{Token, TokenType},
+    token::{Sub, SubMethod, Token, TokenType},
     utils::ChUtils,
 };
 
@@ -29,17 +29,18 @@ impl Calculator {
     //
     // For instance NUMBER(I) is 6, NUMBER(II) is 7,
     // and the operation is PRODUCT(Multiplication). Result of function would be ──▶ 6 * 7 = 42
-    pub fn calculate(tokens: Vec<Token>, input: &str) -> Result<f64, Error> {
+    pub fn calculate(sub: Sub, input: &str) -> Result<f64, Error> {
         let mut result: f64 = 0.0;
+        let tokens: Vec<Token> = sub.clone().tokens.clone();
 
-        if tokens.clone().is_empty() {
+        if tokens.is_empty() {
             return Err(Error::empty_tokens());
         }
 
         // In case of having one but sub-expression token
         // We have to use its sub tokens to calculate.
-        if tokens.clone().len() == 1 && tokens.clone()[0].clone().is_sub_exp() {
-            return Calculator::calculate(tokens.clone()[0].clone().sub_tokens, input.clone());
+        if tokens.len() == 1 && tokens[0].clone().is_sub_exp() {
+            return Calculator::calculate(tokens[0].clone().sub, input.clone());
         }
 
         let mut i: usize = 0;
@@ -73,7 +74,7 @@ impl Calculator {
                     }
                 };
             } else if token.clone().is_sub_exp() {
-                y = match Calculator::calculate(token.clone().sub_tokens, input.clone()) {
+                y = match Calculator::calculate(token.clone().sub, input.clone()) {
                     Ok(v) => v,
                     Err(e) => return Err(e),
                 };
@@ -83,6 +84,11 @@ impl Calculator {
             result = Calculator::execute_operation(x, y, operation);
             i += 2;
         }
+
+        let result = match sub.clone().method {
+            SubMethod::PAREN => result,
+            SubMethod::ABS => result.abs(),
+        };
 
         Ok(result)
     }
@@ -166,15 +172,18 @@ mod tests {
             ("5 ^ 2", Ok(25.0)),
             ("4 ^ 2 ^ 2 + 4", Ok(260.0)),
             ("2(20 + 3 ^ 3) ^ 2 + 82", Ok(4500.0)),
+            ("[2 - 12] - 10", Ok(0.0)),
+            ("7 * [5 - 9 / [5 - 8]]", Ok(14.0)),
+            ("7 * [5 - 9 / [5 - 8]]", Ok(14.0)),
         ]);
 
         for (input, expected) in test_data {
-            let tokens = match Lexer::lex(input.clone()) {
+            let sub = match Lexer::lex(input.clone()) {
                 Ok(v) => v,
-                Err(_) => Vec::new(),
+                Err(_) => Sub::empty(),
             };
 
-            let result = Calculator::calculate(tokens, input.clone());
+            let result = Calculator::calculate(sub, input.clone());
             assert_eq!(result, expected);
         }
     }

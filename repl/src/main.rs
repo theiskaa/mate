@@ -21,16 +21,16 @@ fn main() {
         match stdin().read_line(&mut input) {
             Err(e) => println!("{} {} \n", format!("[!]").bold().red(), e.to_string().red()),
             Ok(_) => {
-                let tokens: Vec<Token> = match Lexer::lex(input.clone().as_str()) {
+                let sub = match Lexer::lex(input.clone().as_str()) {
                     Ok(tt) => tt,
                     Err(e) => return print_err(e.to_string()),
                 };
 
                 if log_tokens {
-                    print_tokens(tokens.clone())
+                    print_tokens(sub.tokens.clone())
                 }
 
-                let result = Calculator::calculate(tokens, &input.clone().as_str());
+                let result = Calculator::calculate(sub, &input.clone().as_str());
                 match result {
                     Ok(v) => println!("{} \n", v.to_string().green().bold()),
                     Err(e) => print_err(e.to_string()),
