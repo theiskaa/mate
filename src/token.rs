@@ -7,11 +7,13 @@
 use crate::utils::ChUtils;
 
 // The structure model for high level sub expression implementations.
+// That could hold the actual source: tokens, and transformation method.
+//
 // For example: in case of parentheses and combinable
 // operations(*, /, %) method have to be [PAREN].
 // Or, in case of absolute values the method have to be [ABS],
 // to let calculator know the approach it has to take to
-// return final result of concrete sub tokens.
+// return final result of tokens.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Sub {
     pub tokens: Vec<Token>,
@@ -159,6 +161,16 @@ impl Token {
         };
     }
 
+    // Creates an empty Token model.
+    pub fn empty() -> Self {
+        Self {
+            typ: TokenType::ILLEGAL,
+            literal: String::new(),
+            sub: Sub::empty(),
+            index: (0, 0),
+        }
+    }
+
     // A function to get valid sub-method from token.
     //
     // - If [self.typ] is [ABS] is [SubMethod::ABS].
@@ -251,6 +263,19 @@ impl Token {
             TokenType::RABS => true,
             _ => false,
         }
+    }
+
+    // Checks the "parentheses" family tokens' matching to each other.
+    // So, if pointed(self) token is left-parentheses
+    // given token(t) should be right-parentheses, if not returns false.
+    pub fn matchto(&self, t: Token) -> bool {
+        let m = match self.typ {
+            TokenType::LPAREN => TokenType::RPAREN,
+            TokenType::LABS => TokenType::RABS,
+            _ => TokenType::ILLEGAL,
+        };
+
+        return m == t.typ;
     }
 }
 
@@ -504,7 +529,7 @@ mod tests {
             (false, Token::from(String::from("-25"), (0, 1))),
             (false, Token::from(String::from("-"), (0, 0))),
             (true, Token::from(String::from("}"), (0, 0))),
-            (true, Token::from(String::from("["), (0, 0))),
+            (true, Token::from(String::from("|"), (0, 0))),
         ]);
 
         for (expected, token) in test_data {
@@ -607,6 +632,37 @@ mod tests {
 
         for (expected, token) in test_data {
             assert_eq!(expected, token.is_rabs());
+        }
+    }
+
+    #[test]
+    fn matchto() {
+        let test_data: HashMap<bool, (Token, Token)> = HashMap::from([
+            (
+                true,
+                (
+                    Token::from(String::from("("), (0, 0)),
+                    Token::from(String::from(")"), (0, 0)),
+                ),
+            ),
+            (
+                true,
+                (
+                    Token::from(String::from("["), (0, 0)),
+                    Token::from(String::from("]"), (0, 0)),
+                ),
+            ),
+            (
+                false,
+                (
+                    Token::from(String::from("0"), (0, 0)),
+                    Token::from(String::from("1"), (0, 0)),
+                ),
+            ),
+        ]);
+
+        for (expected, tokens) in test_data {
+            assert_eq!(expected, tokens.0.matchto(tokens.1));
         }
     }
 }

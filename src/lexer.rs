@@ -4,7 +4,11 @@
 // that can be found in the LICENSE file.
 //
 
-use crate::{errors::Error, token::Token, utils::ChUtils};
+use crate::{
+    errors::Error,
+    token::{Sub, SubMethod, Token},
+    utils::ChUtils,
+};
 use std::{cell::Cell, collections::HashMap};
 use substring::Substring;
 
@@ -74,7 +78,7 @@ impl<'a> Lexer<'a> {
     //  │                                   │
     //  ╰───────────────────────────────────╯
     //
-    pub fn lex(input: &'a str) -> Result<Vec<Token>, Error> {
+    pub fn lex(input: &'a str) -> Result<Sub, Error> {
         let lexer: Lexer = match Lexer::new(input) {
             Ok(l) => l,
             Err(e) => return Err(e),
@@ -100,27 +104,33 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    // The nesting-to-tokens algorithm implementation.
+    // The nesting-to-tokens algorithm impl.
+    //
     // Nesting-to-tokens algorithm is a hashing algorithm that lexer uses to
     // parse parentheses expressions and put them into their nest level.
     //
     // For example if the given token list is -> "5 + (2 + 4) : (4 + 5 * (3 + 5))"
-    // Generated result will be:  --> Note: {<integer>} represents the pointer token.
+    // Generated result will be:  --> `Note: {<integer>} represents the pointer token`
     //  | 0: 5 + {1} : {2}
     //  | 1: 2 + 4
     //  | 2: 4 + 5 * {3}
     //  | 3: 3 + 5
     //
     // By storing tokens by their nesting levels, makes it easy to understand and implement
-    // parentheses expressions as sub-expressions.
+    // any kind of parentheses expressions as sub-expressions.
     fn nest_parentheses(tokens: Vec<Token>) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error> {
         let mut nested: HashMap<usize, (Vec<Token>, bool)> = HashMap::new();
 
         let mut level: usize = 0;
 
         let mut i: usize = 0;
+        let mut startert: Token = Token::empty();
         while i < tokens.clone().len() {
-            if tokens[i].clone().is_lparen() {
+            let t: Token = tokens[i].clone();
+
+            if t.is_lparen() || t.is_labs() {
+                startert = t.clone(); // update starter-type.
+
                 let mut base: (Vec<Token>, bool) = match nested.get(&0) {
                     None => (vec![], false),
                     Some(v) => v.clone(),
@@ -128,25 +138,23 @@ impl<'a> Lexer<'a> {
 
                 level += 1;
 
-                base.0.push(Token::new_pointer(level));
+                base.0
+                    .push(Token::new_pointer(level, startert.to_submethod()));
                 nested.insert(0, base.clone());
 
                 match Lexer::take_till_end(tokens.clone(), i) {
                     None => return Err(Error::new(String::from("TODO: find a appropriate error"))),
                     Some(v) => {
-                        let mut new: (Vec<Token>, bool) = (vec![], v.2);
-                        for t in v.0.iter() {
-                            new.0.push(t.clone());
-                        }
-
-                        nested.insert(level, new);
+                        nested.insert(level, (v.0, v.2));
                         i = v.1;
                     }
                 };
 
                 continue;
-            } else if tokens[i].clone().is_rparen() {
-                i += 1;
+            } else if t.is_rparen() || t.is_rabs() {
+                if startert.clone().matchto(t.clone()) {
+                    i += 1;
+                }
                 continue;
             }
 
@@ -155,7 +163,7 @@ impl<'a> Lexer<'a> {
                 Some(v) => v.clone(),
             };
 
-            base.0.push(tokens[i].clone());
+            base.0.push(t);
             nested.insert(0, base.clone());
             i += 1;
         }
@@ -163,29 +171,45 @@ impl<'a> Lexer<'a> {
         return Ok(nested);
     }
 
-    // Collects all the tokens from exact one parentheses expression.
-    // To make all stuff work well, pass the right starting point of your parentheses.
-    // If [start] doesn't equals to opening parentheses, result gonna be [None].
+    // Collects all the tokens from exact one parentheses-expression-clip.
+    // If [start] doesn't equals to any kind of opening(left) parentheses, result gonna be [None].
     fn take_till_end(tokens: Vec<Token>, start: usize) -> Option<(Vec<Token>, usize, bool)> {
         let mut iteration_count = start;
         let mut has_to_recall: bool = false;
 
-        let mut level: i32 = 1; // [start] indexed value should always equal to a opening parentheses
-        if !tokens.clone()[start].is_lparen() || start > tokens.clone().len() {
+        let mut level: i32 = 1;
+
+        // [start] indexed value should always equal to an any kind of opening parentheses
+        let start_token = tokens.clone()[start].clone();
+        if !start_token.is_lparen() && !start_token.is_labs() || start > tokens.clone().len() {
             return None;
         }
 
+        // Initialize the matcho_collection with start_token.
+        // In case of different kinds of parentheses(normal and abs) we have to track the
+        // nesting level my right matching token-types.
+        // So, if the opening is normal parentheses token, in case of closing abs parentheses
+        // we shouldn't decrement the level.
+        let mut matcho_collection: Vec<Token> = vec![start_token.clone()];
+
         let mut collected: Vec<Token> = Vec::new();
         for i in (start + 1)..tokens.len() {
+            let t = tokens[i].clone();
+
             iteration_count += 1;
 
-            if tokens[i].clone().is_lparen() {
+            if t.is_lparen() || t.is_labs() {
                 level += 1;
                 has_to_recall = true;
+                matcho_collection.push(t.clone())
             }
 
-            if tokens[i].clone().is_rparen() {
-                level -= 1;
+            if t.is_rparen() || t.is_rabs() {
+                if matcho_collection.last().unwrap().matchto(t) {
+                    level -= 1;
+                    matcho_collection.pop();
+                }
+
                 if level == 0 {
                     return Some((collected, iteration_count, has_to_recall));
                 }
@@ -201,7 +225,7 @@ impl<'a> Lexer<'a> {
     // Runs into each nest-level indexed hash-map value and collects them into one line token
     // list.
     // If it's required to re-nest current nest-level indexed hash-map value, it calls
-    // [nest_parentheses] and then itself inside of it.
+    // [nest_parentheses] inside of itself.
     fn break_nesting(
         point: usize,
         nested: HashMap<usize, (Vec<Token>, bool)>,
@@ -221,8 +245,8 @@ impl<'a> Lexer<'a> {
                         None => continue,
                         Some(v) => {
                             if !v.1 {
-                                let combined: Vec<Token> = Lexer::combine_tokens(v.0.clone());
-                                result.push(Token::new_sub(combined));
+                                let combined: Sub = Lexer::combine_tokens(v.0.clone());
+                                result.push(Token::new_sub(combined.tokens, t.clone().sub.method));
                                 continue;
                             }
 
@@ -233,8 +257,11 @@ impl<'a> Lexer<'a> {
                                 Ok(v) => match Lexer::break_nesting(0, v) {
                                     Err(e) => return Err(e),
                                     Ok(v) => {
-                                        let combined: Vec<Token> = Lexer::combine_tokens(v);
-                                        result.push(Token::new_sub(combined));
+                                        let combined: Sub = Lexer::combine_tokens(v);
+                                        result.push(Token::new_sub(
+                                            combined.tokens,
+                                            t.clone().sub.method,
+                                        ));
                                     }
                                 },
                             }
@@ -257,7 +284,7 @@ impl<'a> Lexer<'a> {
     // then continue to the other ones.
     // So, that, we have to convert the multiplication and division
     // parts of main expression into the sub expressions.
-    fn combine_tokens(tokens: Vec<Token>) -> Vec<Token> {
+    fn combine_tokens(tokens: Vec<Token>) -> Sub {
         let mut combined_tokens: Vec<Token> = Vec::new();
         let mut sub_tokens: Vec<Token> = Vec::new();
         let mut power_subs: Vec<Token> = Vec::new();
@@ -301,10 +328,10 @@ impl<'a> Lexer<'a> {
             }
 
             if !power_subs.is_empty() {
-                sub_tokens.push(Token::new_sub(Lexer::combine_powers(
-                    power_subs.clone(),
-                    power_subs.clone().len() - 1,
-                )));
+                sub_tokens.push(Token::new_sub(
+                    Lexer::combine_powers(power_subs.clone(), power_subs.clone().len() - 1),
+                    SubMethod::PAREN,
+                ));
 
                 power_subs.clear();
             }
@@ -317,10 +344,10 @@ impl<'a> Lexer<'a> {
             // Checks matching of new or exiting sub-token.
             if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp()) {
                 if !power_subs.is_empty() {
-                    sub_tokens.push(Token::new_sub(Lexer::combine_powers(
-                        power_subs.clone(),
-                        power_subs.len() - 1,
-                    )));
+                    sub_tokens.push(Token::new_sub(
+                        Lexer::combine_powers(power_subs.clone(), power_subs.len() - 1),
+                        SubMethod::PAREN,
+                    ));
                     power_subs.clear();
                 }
 
@@ -332,7 +359,7 @@ impl<'a> Lexer<'a> {
                 if sub_tokens.len() == 1 && sub_tokens.clone()[0].is_sub_exp() {
                     combined_tokens.append(&mut sub_tokens.clone());
                 } else {
-                    combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+                    combined_tokens.push(Token::new_sub(sub_tokens.clone(), SubMethod::PAREN));
                 }
 
                 sub_tokens.clear()
@@ -348,27 +375,27 @@ impl<'a> Lexer<'a> {
                     power_subs.len() - 1,
                 ));
             } else {
-                sub_tokens.push(Token::new_sub(Lexer::combine_powers(
-                    power_subs.clone(),
-                    power_subs.len() - 1,
-                )))
+                sub_tokens.push(Token::new_sub(
+                    Lexer::combine_powers(power_subs.clone(), power_subs.len() - 1),
+                    SubMethod::PAREN,
+                ))
             }
         }
 
         if combined_tokens.is_empty() {
-            return sub_tokens;
+            return Sub::new(sub_tokens, SubMethod::PAREN);
         }
 
         // Avoid appending sub-expression-token to empty tokens list.
         if !sub_tokens.is_empty() {
             if sub_tokens.len() == 1 && sub_tokens.clone()[0].is_sub_exp() {
-                combined_tokens.append(&mut sub_tokens.clone()[0].sub_tokens);
+                combined_tokens.append(&mut sub_tokens.clone()[0].sub.tokens);
             } else {
-                combined_tokens.push(Token::new_sub(sub_tokens.clone()));
+                combined_tokens.push(Token::new_sub(sub_tokens.clone(), SubMethod::PAREN));
             }
         }
 
-        return combined_tokens;
+        return Sub::new(combined_tokens, SubMethod::PAREN);
     }
 
     // Combines 1D sub expression power tokens to actual nested-power sub-expression vector.
@@ -397,7 +424,7 @@ impl<'a> Lexer<'a> {
 
         let cpart: Vec<Token> = tokens.clone()[end as usize..=start.clone()].to_vec();
         combined_tokens.append(&mut tokens.clone()[..end as usize].to_vec());
-        combined_tokens.push(Token::new_sub(cpart));
+        combined_tokens.push(Token::new_sub(cpart, SubMethod::PAREN));
 
         if end <= 0 {
             return combined_tokens;
@@ -591,7 +618,11 @@ impl<'a> Lexer<'a> {
             Some(v) => {
                 if v != ' ' {
                     let is_paren: (bool, bool) = v.to_string().is_parentheses();
-                    return !is_paren.1 && !v.to_string().is_number();
+                    let is_abs: (bool, bool) = v.to_string().is_abs();
+
+                    // println!("{}, abs:{:?}, paren:{:?}", v, is_abs, is_paren);
+
+                    return !is_paren.1 && !is_abs.1 && !v.to_string().is_number();
                 }
 
                 self.is_free_from_number(step + 1)
@@ -645,216 +676,390 @@ mod test {
 
     #[test]
     fn lex() {
-        let test_data: HashMap<&str, Result<Vec<Token>, Error>> = HashMap::from([
-            ("", Err(Error::empty_input())),
-            ("25", Ok(vec![Token::from(String::from("25"), (0, 1))])),
-            ("-25", Ok(vec![Token::from(String::from("-25"), (0, 2))])),
+        let test_data: HashMap<String, Result<Sub, Error>> = HashMap::from([
+            (String::new(), Err(Error::empty_input())),
             (
-                "(25)",
-                Ok(vec![Token::new_sub(vec![Token::from(
-                    String::from("25"),
-                    (1, 2),
-                )])]),
+                String::from("25"),
+                Ok(Sub::new(
+                    vec![Token::from(String::from("25"), (0, 1))],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "(-25)",
-                Ok(vec![Token::new_sub(vec![Token::from(
-                    String::from("-25"),
-                    (1, 3),
-                )])]),
+                String::from("-25"),
+                Ok(Sub::new(
+                    vec![Token::from(String::from("-25"), (0, 2))],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "-25 + 5",
-                Ok(vec![
-                    Token::from(String::from("-25"), (0, 2)),
-                    Token::from(String::from("+"), (4, 4)),
-                    Token::from(String::from("5"), (6, 6)),
-                ]),
+                String::from("(25)"),
+                Ok(Sub::new(
+                    vec![Token::new_sub(
+                        vec![Token::from(String::from("25"), (1, 2))],
+                        SubMethod::PAREN,
+                    )],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "- - 2 + - 5",
-                Ok(vec![
-                    Token::from(String::from("-"), (0, 0)),
-                    Token::from(String::from("-2"), (2, 4)),
-                    Token::from(String::from("+"), (6, 6)),
-                    Token::from(String::from("-5"), (8, 10)),
-                ]),
+                String::from("(-25)"),
+                Ok(Sub::new(
+                    vec![Token::new_sub(
+                        vec![Token::from(String::from("-25"), (1, 3))],
+                        SubMethod::PAREN,
+                    )],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "42 * 5",
-                Ok(vec![
-                    Token::from(String::from("42"), (0, 1)),
-                    Token::from(String::from("*"), (3, 3)),
-                    Token::from(String::from("5"), (5, 5)),
-                ]),
-            ),
-            (
-                "- 2 * 7 / 5 + - 20 / - 5",
-                Ok(vec![
-                    Token::new_sub(vec![
-                        Token::from(String::from("-2"), (0, 2)),
-                        Token::from(String::from("*"), (4, 4)),
-                        Token::from(String::from("7"), (6, 6)),
-                        Token::from(String::from("/"), (8, 8)),
-                        Token::from(String::from("5"), (10, 10)),
-                    ]),
-                    Token::from(String::from("+"), (12, 12)),
-                    Token::new_sub(vec![
-                        Token::from(String::from("-20"), (14, 17)),
-                        Token::from(String::from("/"), (19, 19)),
-                        Token::from(String::from("-5"), (21, 23)),
-                    ]),
-                ]),
-            ),
-            (
-                "(5 - 9) - 10",
-                Ok(vec![
-                    Token::new_sub(vec![
-                        Token::from(String::from("5"), (1, 1)),
-                        Token::from(String::from("-"), (3, 3)),
-                        Token::from(String::from("9"), (5, 5)),
-                    ]),
-                    Token::from(String::from("-"), (8, 8)),
-                    Token::from(String::from("10"), (10, 11)),
-                ]),
-            ),
-            (
-                "(10 - 5) - (10 / 2)",
-                Ok(vec![
-                    Token::new_sub(vec![
-                        Token::from(String::from("10"), (1, 2)),
-                        Token::from(String::from("-"), (4, 4)),
+                String::from("-25 + 5"),
+                Ok(Sub::new(
+                    vec![
+                        Token::from(String::from("-25"), (0, 2)),
+                        Token::from(String::from("+"), (4, 4)),
                         Token::from(String::from("5"), (6, 6)),
-                    ]),
-                    Token::from(String::from("-"), (9, 9)),
-                    Token::new_sub(vec![
-                        Token::from(String::from("10"), (12, 13)),
-                        Token::from(String::from("/"), (15, 15)),
-                        Token::from(String::from("2"), (17, 17)),
-                    ]),
-                ]),
+                    ],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "((10 - 5) - (10 / 2)) / 2",
-                Ok(vec![
-                    Token::new_sub(vec![
-                        Token::new_sub(vec![
-                            Token::from(String::from("10"), (2, 3)),
-                            Token::from(String::from("-"), (5, 5)),
-                            Token::from(String::from("5"), (7, 7)),
-                        ]),
-                        Token::from(String::from("-"), (10, 10)),
-                        Token::new_sub(vec![
-                            Token::from(String::from("10"), (13, 14)),
-                            Token::from(String::from("/"), (16, 16)),
-                            Token::from(String::from("2"), (18, 18)),
-                        ]),
-                    ]),
-                    Token::from(String::from("/"), (22, 22)),
-                    Token::from(String::from("2"), (24, 24)),
-                ]),
+                String::from("- - 2 + - 5"),
+                Ok(Sub::new(
+                    vec![
+                        Token::from(String::from("-"), (0, 0)),
+                        Token::from(String::from("-2"), (2, 4)),
+                        Token::from(String::from("+"), (6, 6)),
+                        Token::from(String::from("-5"), (8, 10)),
+                    ],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "(2 + 5) * (5 - 9 / (8 - 5))",
-                Ok(vec![
-                    Token::new_sub(vec![
-                        Token::from(String::from("2"), (1, 1)),
-                        Token::from(String::from("+"), (3, 3)),
+                String::from("42 * 5"),
+                Ok(Sub::new(
+                    vec![
+                        Token::from(String::from("42"), (0, 1)),
+                        Token::from(String::from("*"), (3, 3)),
                         Token::from(String::from("5"), (5, 5)),
-                    ]),
-                    Token::from(String::from("*"), (8, 8)),
-                    Token::new_sub(vec![
-                        Token::from(String::from("5"), (11, 11)),
-                        Token::from(String::from("-"), (13, 13)),
-                        Token::new_sub(vec![
-                            Token::from(String::from("9"), (15, 15)),
-                            Token::from(String::from("/"), (17, 17)),
-                            Token::new_sub(vec![
-                                Token::from(String::from("8"), (20, 20)),
-                                Token::from(String::from("-"), (22, 22)),
-                                Token::from(String::from("5"), (24, 24)),
-                            ]),
-                        ]),
-                    ]),
-                ]),
+                    ],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "5(5 / 2)(9 * 3)11",
-                Ok(vec![
-                    Token::from(String::from("5"), (0, 0)),
-                    Token::from(String::from("*"), Token::unknown_index()),
-                    Token::new_sub(vec![
-                        Token::from(String::from("5"), (2, 2)),
-                        Token::from(String::from("/"), (4, 4)),
-                        Token::from(String::from("2"), (6, 6)),
-                    ]),
-                    Token::from(String::from("*"), Token::unknown_index()),
-                    Token::new_sub(vec![
-                        Token::from(String::from("9"), (9, 9)),
-                        Token::from(String::from("*"), (11, 11)),
-                        Token::from(String::from("3"), (13, 13)),
-                    ]),
-                    Token::from(String::from("*"), Token::unknown_index()),
-                    Token::from(String::from("11"), (15, 16)),
-                ]),
+                String::from("- 2 * 7 / 5 + - 20 / - 5"),
+                Ok(Sub::new(
+                    vec![
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("-2"), (0, 2)),
+                                Token::from(String::from("*"), (4, 4)),
+                                Token::from(String::from("7"), (6, 6)),
+                                Token::from(String::from("/"), (8, 8)),
+                                Token::from(String::from("5"), (10, 10)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                        Token::from(String::from("+"), (12, 12)),
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("-20"), (14, 17)),
+                                Token::from(String::from("/"), (19, 19)),
+                                Token::from(String::from("-5"), (21, 23)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                    ],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "5 ^ 3 ^ 2 ^ 5 * 19 - 50",
-                Ok(vec![
-                    Token::new_sub(vec![
-                        Token::new_sub(vec![
-                            Token::from(String::from("5"), (0, 0)),
-                            Token::from(String::from("^"), (2, 2)),
-                            Token::new_sub(vec![
+                String::from("(5 - 9) - 10"),
+                Ok(Sub::new(
+                    vec![
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("5"), (1, 1)),
+                                Token::from(String::from("-"), (3, 3)),
+                                Token::from(String::from("9"), (5, 5)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                        Token::from(String::from("-"), (8, 8)),
+                        Token::from(String::from("10"), (10, 11)),
+                    ],
+                    SubMethod::PAREN,
+                )),
+            ),
+            (
+                String::from("(10 - 5) - (10 / 2)"),
+                Ok(Sub::new(
+                    vec![
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("10"), (1, 2)),
+                                Token::from(String::from("-"), (4, 4)),
+                                Token::from(String::from("5"), (6, 6)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                        Token::from(String::from("-"), (9, 9)),
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("10"), (12, 13)),
+                                Token::from(String::from("/"), (15, 15)),
+                                Token::from(String::from("2"), (17, 17)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                    ],
+                    SubMethod::PAREN,
+                )),
+            ),
+            (
+                String::from("((10 - 5) - (10 / 2)) / 2"),
+                Ok(Sub::new(
+                    vec![
+                        Token::new_sub(
+                            vec![
+                                Token::new_sub(
+                                    vec![
+                                        Token::from(String::from("10"), (2, 3)),
+                                        Token::from(String::from("-"), (5, 5)),
+                                        Token::from(String::from("5"), (7, 7)),
+                                    ],
+                                    SubMethod::PAREN,
+                                ),
+                                Token::from(String::from("-"), (10, 10)),
+                                Token::new_sub(
+                                    vec![
+                                        Token::from(String::from("10"), (13, 14)),
+                                        Token::from(String::from("/"), (16, 16)),
+                                        Token::from(String::from("2"), (18, 18)),
+                                    ],
+                                    SubMethod::PAREN,
+                                ),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                        Token::from(String::from("/"), (22, 22)),
+                        Token::from(String::from("2"), (24, 24)),
+                    ],
+                    SubMethod::PAREN,
+                )),
+            ),
+            (
+                String::from("(2 + 5) * (5 - 9 / (8 - 5))"),
+                Ok(Sub::new(
+                    vec![
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("2"), (1, 1)),
+                                Token::from(String::from("+"), (3, 3)),
+                                Token::from(String::from("5"), (5, 5)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                        Token::from(String::from("*"), (8, 8)),
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("5"), (11, 11)),
+                                Token::from(String::from("-"), (13, 13)),
+                                Token::new_sub(
+                                    vec![
+                                        Token::from(String::from("9"), (15, 15)),
+                                        Token::from(String::from("/"), (17, 17)),
+                                        Token::new_sub(
+                                            vec![
+                                                Token::from(String::from("8"), (20, 20)),
+                                                Token::from(String::from("-"), (22, 22)),
+                                                Token::from(String::from("5"), (24, 24)),
+                                            ],
+                                            SubMethod::PAREN,
+                                        ),
+                                    ],
+                                    SubMethod::PAREN,
+                                ),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                    ],
+                    SubMethod::PAREN,
+                )),
+            ),
+            (
+                String::from("5(5 / 2)(9 * 3)11"),
+                Ok(Sub::new(
+                    vec![
+                        Token::from(String::from("5"), (0, 0)),
+                        Token::from(String::from("*"), Token::unknown_index()),
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("5"), (2, 2)),
+                                Token::from(String::from("/"), (4, 4)),
+                                Token::from(String::from("2"), (6, 6)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                        Token::from(String::from("*"), Token::unknown_index()),
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("9"), (9, 9)),
+                                Token::from(String::from("*"), (11, 11)),
+                                Token::from(String::from("3"), (13, 13)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                        Token::from(String::from("*"), Token::unknown_index()),
+                        Token::from(String::from("11"), (15, 16)),
+                    ],
+                    SubMethod::PAREN,
+                )),
+            ),
+            (
+                String::from("5 ^ 3 ^ 2 ^ 5 * 19 - 50"),
+                Ok(Sub::new(
+                    vec![
+                        Token::new_sub(
+                            vec![
+                                Token::new_sub(
+                                    vec![
+                                        Token::from(String::from("5"), (0, 0)),
+                                        Token::from(String::from("^"), (2, 2)),
+                                        Token::new_sub(
+                                            vec![
+                                                Token::from(String::from("3"), (4, 4)),
+                                                Token::from(String::from("^"), (6, 6)),
+                                                Token::new_sub(
+                                                    vec![
+                                                        Token::from(String::from("2"), (8, 8)),
+                                                        Token::from(String::from("^"), (10, 10)),
+                                                        Token::from(String::from("5"), (12, 12)),
+                                                    ],
+                                                    SubMethod::PAREN,
+                                                ),
+                                            ],
+                                            SubMethod::PAREN,
+                                        ),
+                                    ],
+                                    SubMethod::PAREN,
+                                ),
+                                Token::from(String::from("*"), (14, 14)),
+                                Token::from(String::from("19"), (16, 17)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                        Token::from(String::from("-"), (19, 19)),
+                        Token::from(String::from("50"), (21, 22)),
+                    ],
+                    SubMethod::PAREN,
+                )),
+            ),
+            (
+                String::from("5 ^ 3 ^ 19"),
+                Ok(Sub::new(
+                    vec![
+                        Token::from(String::from("5"), (0, 0)),
+                        Token::from(String::from("^"), (2, 2)),
+                        Token::new_sub(
+                            vec![
                                 Token::from(String::from("3"), (4, 4)),
                                 Token::from(String::from("^"), (6, 6)),
-                                Token::new_sub(vec![
-                                    Token::from(String::from("2"), (8, 8)),
-                                    Token::from(String::from("^"), (10, 10)),
-                                    Token::from(String::from("5"), (12, 12)),
-                                ]),
-                            ]),
-                        ]),
-                        Token::from(String::from("*"), (14, 14)),
-                        Token::from(String::from("19"), (16, 17)),
-                    ]),
-                    Token::from(String::from("-"), (19, 19)),
-                    Token::from(String::from("50"), (21, 22)),
-                ]),
+                                Token::from(String::from("19"), (8, 9)),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                    ],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "5 ^ 3 ^ 19",
-                Ok(vec![
-                    Token::from(String::from("5"), (0, 0)),
-                    Token::from(String::from("^"), (2, 2)),
-                    Token::new_sub(vec![
-                        Token::from(String::from("3"), (4, 4)),
-                        Token::from(String::from("^"), (6, 6)),
-                        Token::from(String::from("19"), (8, 9)),
-                    ]),
-                ]),
+                String::from("(2 + 3 ^ 5) ^ 9"),
+                Ok(Sub::new(
+                    vec![
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("2"), (1, 1)),
+                                Token::from(String::from("+"), (3, 3)),
+                                Token::new_sub(
+                                    vec![
+                                        Token::from(String::from("3"), (5, 5)),
+                                        Token::from(String::from("^"), (7, 7)),
+                                        Token::from(String::from("5"), (9, 9)),
+                                    ],
+                                    SubMethod::PAREN,
+                                ),
+                            ],
+                            SubMethod::PAREN,
+                        ),
+                        Token::from(String::from("^"), (12, 12)),
+                        Token::from(String::from("9"), (14, 14)),
+                    ],
+                    SubMethod::PAREN,
+                )),
             ),
             (
-                "(2 + 3 ^ 5) ^ 9",
-                Ok(vec![
-                    Token::new_sub(vec![
-                        Token::from(String::from("2"), (1, 1)),
-                        Token::from(String::from("+"), (3, 3)),
-                        Token::new_sub(vec![
-                            Token::from(String::from("3"), (5, 5)),
-                            Token::from(String::from("^"), (7, 7)),
-                            Token::from(String::from("5"), (9, 9)),
-                        ]),
-                    ]),
-                    Token::from(String::from("^"), (12, 12)),
-                    Token::from(String::from("9"), (14, 14)),
-                ]),
+                String::from("[2 - 12] - 10"),
+                Ok(Sub::new(
+                    vec![
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("2"), (1, 1)),
+                                Token::from(String::from("-"), (3, 3)),
+                                Token::from(String::from("12"), (5, 6)),
+                            ],
+                            SubMethod::ABS,
+                        ),
+                        Token::from(String::from("-"), (9, 9)),
+                        Token::from(String::from("10"), (11, 12)),
+                    ],
+                    SubMethod::PAREN,
+                )),
+            ),
+            (
+                String::from("[7 - 14] * [5 - 9 / [5 - 3]]"),
+                Ok(Sub::new(
+                    vec![
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("7"), (1, 1)),
+                                Token::from(String::from("-"), (3, 3)),
+                                Token::from(String::from("14"), (5, 6)),
+                            ],
+                            SubMethod::ABS,
+                        ),
+                        Token::from(String::from("*"), (9, 9)),
+                        Token::new_sub(
+                            vec![
+                                Token::from(String::from("5"), (12, 12)),
+                                Token::from(String::from("-"), (14, 14)),
+                                Token::new_sub(
+                                    vec![
+                                        Token::from(String::from("9"), (16, 16)),
+                                        Token::from(String::from("/"), (18, 18)),
+                                        Token::new_sub(
+                                            vec![
+                                                Token::from(String::from("5"), (21, 21)),
+                                                Token::from(String::from("-"), (23, 23)),
+                                                Token::from(String::from("3"), (25, 25)),
+                                            ],
+                                            SubMethod::ABS,
+                                        ),
+                                    ],
+                                    SubMethod::PAREN,
+                                ),
+                            ],
+                            SubMethod::ABS,
+                        ),
+                    ],
+                    SubMethod::PAREN,
+                )),
             ),
         ]);
 
         for (input, expected) in test_data {
-            let result: Result<Vec<Token>, Error> = Lexer::lex(input);
-            assert_eq!(result, expected);
+            let result: Result<Sub, Error> = Lexer::lex(input.as_str());
+            assert_eq!(result, expected)
         }
     }
 

@@ -43,9 +43,15 @@ pub trait ChUtils {
 
     // Checks if the given [&self] object is left parentheses or right parentheses sign.
     //
-    // Left Parentheses  --> (
+    // Left  Parentheses --> (
     // Right Parentheses --> )
     fn is_parentheses(&self) -> (bool, bool);
+
+    // Checks if the given [&self] object is left abs or right abs sign.
+    //
+    // Left  ABS --> [
+    // Right ABS --> ]
+    fn is_abs(&self) -> (bool, bool);
 
     // Checks if the given [%self] object is percentage sign or not.
     fn is_percentage(&self) -> bool;
@@ -77,6 +83,10 @@ impl ChUtils for String {
 
     fn is_parentheses(&self) -> (bool, bool) {
         (self.trim().eq("("), self.trim().eq(")"))
+    }
+
+    fn is_abs(&self) -> (bool, bool) {
+        (self.trim().eq("["), self.trim().eq("]"))
     }
 
     fn is_percentage(&self) -> bool {
@@ -120,6 +130,14 @@ impl ChUtils for Token {
         match self.typ {
             TokenType::LPAREN => (true, false),
             TokenType::RPAREN => (false, true),
+            _ => (false, false),
+        }
+    }
+
+    fn is_abs(&self) -> (bool, bool) {
+        match self.typ {
+            TokenType::LABS => (true, false),
+            TokenType::RABS => (false, true),
             _ => (false, false),
         }
     }
@@ -243,6 +261,26 @@ mod tests {
         for (target, expected) in test_data {
             assert_eq!(target.is_parentheses(), expected);
             assert_eq!(Token::from(target, (0, 0)).is_parentheses(), expected);
+        }
+    }
+
+    #[test]
+    fn is_abs() {
+        let test_data: HashMap<String, (bool, bool)> = HashMap::from([
+            (String::from("/"), (false, false)),
+            (String::from("*"), (false, false)),
+            (String::from(":"), (false, false)),
+            (String::from("‚Äö√Ñ¬¢"), (false, false)),
+            (String::from("-"), (false, false)),
+            (String::from("+"), (false, false)),
+            (String::from("5"), (false, false)),
+            (String::from("]"), (false, true)),
+            (String::from("["), (true, false)),
+        ]);
+
+        for (target, expected) in test_data {
+            assert_eq!(target.is_abs(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_abs(), expected);
         }
     }
 
