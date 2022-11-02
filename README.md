@@ -13,7 +13,7 @@ Mate is a library for parsing and calculating arithmetic expressions inputted as
 This crate is on [crates.io](http://crates.io/crates/mate-rs) and can be used by adding mate-rs to your dependencies in your project's `Cargo.toml`.
 ```toml
 [dependencies]
-mate-rs = "0.1.3"
+mate-rs = "0.1.4"
 ```
 
 ## Example: with `Mate`

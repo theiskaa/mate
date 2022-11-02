@@ -1,3 +1,12 @@
+# v0.1.4
+The fifth version of mate.
+1. Added high-level error handling and errors: [see in docs](https://github.com/theiskaa/mate#errors)
+2. Implemented functionality to parse and calculate absolute-value expressions.
+ 
+- **Pull Requests:** [#22](https://github.com/theiskaa/mate/pull/22) & [#23](https://github.com/theiskaa/mate/pull/23)
+
+- **H-E that versions has ability to solve**: `[ 2 - 12 ] / 2` -> *`5`*
+
 # v0.1.3
 The fourth version of mate.
 Implemented functionality to parse and calculate power expressions.
