@@ -4,7 +4,7 @@
 // that can be found in the LICENSE file.
 //
 
-use crate::token::{Token, TokenType};
+use crate::token::{Sub, SubMethod, Token, TokenType};
 
 pub trait Monitor {
     // Converts the [&self] object to the
@@ -23,7 +23,7 @@ impl Monitor for Token {
             lit = format!("({})", self.literal.to_string());
         } else {
             lit = String::new();
-            for t in self.sub_tokens.iter().map(|t| t.to_string(nest + 1)) {
+            for t in self.sub.tokens.iter().map(|t| t.to_string(nest + 1)) {
                 lit.push_str(format!("\n{}", t).as_str())
             }
         }
@@ -32,7 +32,12 @@ impl Monitor for Token {
             space.push_str("  ");
         }
 
-        format!("{}{}{}", space.as_str(), self.typ.to_string(0), lit)
+        let mut typstr = self.typ.to_string(0);
+        if self.is_sub_exp() {
+            typstr.push_str(format!(" -> {{{}}}", self.sub.to_string(0)).as_str());
+        }
+
+        format!("{}{}{}", space.as_str(), typstr, lit)
     }
 }
 
@@ -51,7 +56,33 @@ impl Monitor for TokenType {
             TokenType::PRODUCT => "PRODUCT",
             TokenType::DIVIDE => "DIVIDE",
             TokenType::PERCENTAGE => "PERCENTAGE",
-            TokenType::ROOT => "ROOT",
+            TokenType::POWER => "POWER",
+            TokenType::LABS => "LEFT-ABS",
+            TokenType::RABS => "RIGHT-ABS",
+        };
+
+        String::from(data)
+    }
+}
+
+// A monitor debugger implementation for [Sub].
+impl Monitor for Sub {
+    fn to_string(&self, _n: usize) -> String {
+        let data = match &self.method {
+            SubMethod::ABS => "ABSOLUTE-VALUE",
+            SubMethod::PAREN => "PARENTHESES",
+        };
+
+        String::from(data)
+    }
+}
+
+// A monitor debugger implementation for [SubMethod].
+impl Monitor for SubMethod {
+    fn to_string(&self, _n: usize) -> String {
+        let data = match self {
+            SubMethod::ABS => "ABSOLUTE-VALUE",
+            SubMethod::PAREN => "PARENTHESES",
         };
 
         String::from(data)
@@ -67,11 +98,11 @@ mod tests {
     fn token_to_string() {
         let test_data: HashMap<String, String> = HashMap::from([
             (
-                Token::from(String::from("-25")).to_string(0),
+                Token::from(String::from("-25"), (0, 1)).to_string(0),
                 String::from("NUMBER(-25)"),
             ),
             (
-                Token::from(String::from("/")).to_string(0),
+                Token::from(String::from("/"), (0, 0)).to_string(0),
                 String::from("DIVIDE(/)"),
             ),
         ]);
@@ -95,11 +126,43 @@ mod tests {
             (TokenType::PRODUCT.to_string(0), "PRODUCT"),
             (TokenType::DIVIDE.to_string(0), "DIVIDE"),
             (TokenType::PERCENTAGE.to_string(0), "PERCENTAGE"),
-            (TokenType::ROOT.to_string(0), "ROOT"),
+            (TokenType::POWER.to_string(0), "POWER"),
+            (TokenType::LABS.to_string(0), "LEFT-ABS"),
+            (TokenType::RABS.to_string(0), "RIGHT-ABS"),
         ]);
 
         for (tt, expected) in test_data {
             assert_eq!(tt, expected);
+        }
+    }
+
+    #[test]
+    fn sub_to_string() {
+        let test_data: HashMap<String, &str> = HashMap::from([
+            (
+                Sub::new(Vec::new(), SubMethod::PAREN).to_string(0),
+                "PARENTHESES",
+            ),
+            (
+                Sub::new(Vec::new(), SubMethod::ABS).to_string(0),
+                "ABSOLUTE-VALUE",
+            ),
+        ]);
+
+        for (s, expected) in test_data {
+            assert_eq!(s, expected);
+        }
+    }
+
+    #[test]
+    fn sub_type_to_string() {
+        let test_data: HashMap<String, &str> = HashMap::from([
+            (SubMethod::PAREN.to_string(0), "PARENTHESES"),
+            (SubMethod::ABS.to_string(0), "ABSOLUTE-VALUE"),
+        ]);
+
+        for (s, expected) in test_data {
+            assert_eq!(s, expected);
         }
     }
 }

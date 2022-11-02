@@ -43,9 +43,15 @@ pub trait ChUtils {
 
     // Checks if the given [&self] object is left parentheses or right parentheses sign.
     //
-    // Left Parentheses  --> (
+    // Left  Parentheses --> (
     // Right Parentheses --> )
-    fn is_parentheses(&self) -> bool;
+    fn is_parentheses(&self) -> (bool, bool);
+
+    // Checks if the given [&self] object is left abs or right abs sign.
+    //
+    // Left  ABS --> [
+    // Right ABS --> ]
+    fn is_abs(&self) -> (bool, bool);
 
     // Checks if the given [%self] object is percentage sign or not.
     fn is_percentage(&self) -> bool;
@@ -75,8 +81,12 @@ impl ChUtils for String {
         self.is_plus_or_minus() || self.is_div_or_prod()
     }
 
-    fn is_parentheses(&self) -> bool {
-        self.trim().eq("(") || self.trim().eq(")")
+    fn is_parentheses(&self) -> (bool, bool) {
+        (self.trim().eq("("), self.trim().eq(")"))
+    }
+
+    fn is_abs(&self) -> (bool, bool) {
+        (self.trim().eq("["), self.trim().eq("]"))
     }
 
     fn is_percentage(&self) -> bool {
@@ -116,11 +126,19 @@ impl ChUtils for Token {
         self.is_plus_or_minus() || self.is_div_or_prod()
     }
 
-    fn is_parentheses(&self) -> bool {
+    fn is_parentheses(&self) -> (bool, bool) {
         match self.typ {
-            TokenType::LPAREN => true,
-            TokenType::RPAREN => true,
-            _ => false,
+            TokenType::LPAREN => (true, false),
+            TokenType::RPAREN => (false, true),
+            _ => (false, false),
+        }
+    }
+
+    fn is_abs(&self) -> (bool, bool) {
+        match self.typ {
+            TokenType::LABS => (true, false),
+            TokenType::RABS => (false, true),
+            _ => (false, false),
         }
     }
 
@@ -151,7 +169,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_number(), expected);
-            assert_eq!(Token::from(target).is_number(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_number(), expected);
         }
     }
 
@@ -184,7 +202,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_plus_or_minus(), expected);
-            assert_eq!(Token::from(target).is_plus_or_minus(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_plus_or_minus(), expected);
         }
     }
 
@@ -202,7 +220,7 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_div_or_prod(), expected);
-            assert_eq!(Token::from(target).is_div_or_prod(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_div_or_prod(), expected);
         }
     }
 
@@ -222,27 +240,47 @@ mod tests {
 
         for (target, expected) in test_data {
             assert_eq!(target.is_operation_sign(), expected);
-            assert_eq!(Token::from(target).is_operation_sign(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_operation_sign(), expected);
         }
     }
 
     #[test]
     fn is_parentheses() {
-        let test_data: HashMap<String, bool> = HashMap::from([
-            (String::from("/"), false),
-            (String::from("*"), false),
-            (String::from(":"), false),
-            (String::from("‚Ä¢"), false),
-            (String::from("-"), false),
-            (String::from("+"), false),
-            (String::from("5"), false),
-            (String::from(")"), true),
-            (String::from("("), true),
+        let test_data: HashMap<String, (bool, bool)> = HashMap::from([
+            (String::from("/"), (false, false)),
+            (String::from("*"), (false, false)),
+            (String::from(":"), (false, false)),
+            (String::from("‚Ä¢"), (false, false)),
+            (String::from("-"), (false, false)),
+            (String::from("+"), (false, false)),
+            (String::from("5"), (false, false)),
+            (String::from(")"), (false, true)),
+            (String::from("("), (true, false)),
         ]);
 
         for (target, expected) in test_data {
             assert_eq!(target.is_parentheses(), expected);
-            assert_eq!(Token::from(target).is_parentheses(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_parentheses(), expected);
+        }
+    }
+
+    #[test]
+    fn is_abs() {
+        let test_data: HashMap<String, (bool, bool)> = HashMap::from([
+            (String::from("/"), (false, false)),
+            (String::from("*"), (false, false)),
+            (String::from(":"), (false, false)),
+            (String::from("‚Äö√Ñ¬¢"), (false, false)),
+            (String::from("-"), (false, false)),
+            (String::from("+"), (false, false)),
+            (String::from("5"), (false, false)),
+            (String::from("]"), (false, true)),
+            (String::from("["), (true, false)),
+        ]);
+
+        for (target, expected) in test_data {
+            assert_eq!(target.is_abs(), expected);
+            assert_eq!(Token::from(target, (0, 0)).is_abs(), expected);
         }
     }
 
@@ -257,7 +295,7 @@ mod tests {
 
         for (expected, data) in test_data {
             assert_eq!(expected, data.is_percentage());
-            assert_eq!(expected, Token::from(data).is_percentage());
+            assert_eq!(expected, Token::from(data, (0, 0)).is_percentage());
         }
     }
 }

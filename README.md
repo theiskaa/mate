@@ -16,7 +16,7 @@ This crate is on [crates.io](http://crates.io/crates/mate-rs) and can be used by
 mate-rs = "0.1.3"
 ```
 
-## Example: Simple usage | `Mate`
+## Example: with `Mate`
 
 `Mate` is general wrapper structure for `Lexer` and `Calculator`.
 has only one method that used to `calculate` result via string(&str) input.
@@ -33,7 +33,7 @@ match result {
 };
 ```
 
-## Example: Complicated usage | `Lexer` and `Calculator`
+## Example: with `Lexer` and `Calculator`
 
 `Lexer` is the main structure that parses string-input to token-list.
 `Calculator` is the structure that used to calculate final result via `Lexer`'s result.
@@ -42,50 +42,76 @@ match result {
 use mate_rs::{calculator::Calculator, lexer::Lexer};
 
 // Generated tokens gonna be something like:
-//  | Token(type: NUMBER  literal: "-2"),
-//  | Token(type: PLUS    literal: "+"),
-//  | Token(type: NUMBER  literal: "2"),
-//  | Token(type: PLUS    literal: "+"),
+//  |
 //  | Token(
 //  |   type: SUBEXP,
 //  |   tokens: [
-//  |        Token(type: NUMBER,  literal: "6")
-//  |        Token(type: PRODUCT, literal: "*")
-//  |        Token(type: NUMBER,  literal: "7")
+//  |        Token(
+//  |          type: SUBEXP,
+//  |          tokens: [
+//  |               Token(type: NUMBER,  literal: "2")
+//  |               Token(type: PLUS,    literal: "+")
+//  |               Token(type: NUMBER,  literal: "5")
+//  |          ],
+//  |        ),
+//  |        Token(type: PRODUCT, literal: "*"),
+//  |        Token(
+//  |          type: SUBEXP,
+//  |          tokens: [
+//  |               Token(type: NUMBER,  literal: "5")
+//  |               Token(type: MINUS,   literal: "-")
+//  |               Token(type: NUMBER,  literal: "9")
+//  |               Token(type: PLUS,    literal: "+")
+//  |               Token(
+//  |                 type: SUBEXP,
+//  |                 tokens: [
+//  |                      Token(type: NUMBER,  literal: "8")
+//  |                      Token(type: PLUS,    literal: "-")
+//  |                      Token(type: NUMBER,  literal: "5")
+//  |                 ],
+//  |               ),
+//  |          ],
+//  |        ),
 //  |   ],
 //  | ),
-let tokens = Lexer::lex(" - 2 + 2 + 6 * 7").unwrap(); // should handle error case also
+//  | Token(type: PLUS,    literal: "+")
+//  | Token(type: NUMBER,  literal: "35")
+//  |
+let input = "[ (2 + 5) * (5 - 9 + (8 - 5)) ] + 35";
+let tokens = Lexer::lex(input.clone()).unwrap(); // should handle error case also
 
 // Result will be calculated from tokens, by X/O/Y algorithm.
-let result = Calculator::calculate(tokens);
-
-match result {
-    Ok(v) => assert_eq!(v, 42.0),
-    Err(_) => {
-        // Do something ...
-    }
-};
+//
+//  ╭────────╮ ╭───────────╮ ╭────────╮
+//  │ NUMBER │ │ OPERATION │ │ NUMBER │
+//  ╰────────╯ ╰───────────╯ ╰────────╯
+//       ╰───╮       │        ╭───╯
+//           ▼       ▼        ▼
+//           X  [+, -, *, /]  Y
+//
+let result = Calculator::calculate(tokens, input.clone());
 ```
 
 ---
 
 # How it works
 Mate is all about two main structures, [Lexer] and [Calculator].
-[Lexer] is the structure that takes care of parsing given string expression, 
-and [Calculator] is the structure that takes care of calculating final result via parsed tokens 
+[Lexer] is the structure that takes care of parsing interpretting given string expression, 
+and [Calculator] is the structure that takes care of calculating final result via parsed tokens.
 
 ## Lexer
 Loops through the given input string, reads and converts each character to an [Token] structure.
 We've several types of main tokens and they are:
 - `ILLEGAL` - illegal character.
 - `NUMBER` - number type.
-- `MINUS`, `PLUS`, `PRODUCT`, `DIVIDE`, `PERCENTAGE`, `ROOT` - operations.
+- `MINUS`, `PLUS`, `PRODUCT`, `DIVIDE`, `PERCENTAGE`, `POWER` - operations.
 - `LPAREN`, `RPAREN` - parentheses.
-- `SUBEXP` - sub expression, expressions inside of parentheses or combinations of division and multiplication.
+- `LABS`, `LPAREN` - absolute values.
+- `SUBEXP` - sub expression, expressions inside of parentheses, abs, or combinations of division and multiplication.
 
 Lexer's `lex` functionality converts each character to one of these tokens.
 It combines multiplication or division operation related tokens into one sub-expression to keep the operation-priority right.
-And nests the parentheses with a custom level-to-expression algorithm.
+And nests the parentheses, absolute values and powers with a custom level-to-expression algorithm.
 
 level-to-expression algorithm is mapping algorithm that maps concrete expression to it's nesting level.
 
@@ -109,3 +135,35 @@ If cannot get the `X` or `Y` takes them as zero.
          ▼       ▼        ▼
          X  [+, -, *, /]  Y
 ```
+
+---
+
+# Syntax
+
+The syntaxt of `Mate` kept as easy and basic as possible. It's just plain-text mathematics syntaxt with few customizations. Let's see some examples:
+
+### Plus and Minus
+`2 + 5` and `2 - 5` are valid syntaxts. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`).
+
+### Multiplication, Division and Percentage
+`4 * 2`, `4 / 2`, and `4 % 2` are valid syntaxts. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`).
+Also `4(10 / 2)` or `4(2)` is valid syntax in case of **multiplication**.
+
+### Power
+`4 ^ 2` is valid syntaxt. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`).
+Also continues powers are accepted: `4 ^ 2 ^ 3` which gonna be automatically turned into `4 ^ (2 ^ 3)`.
+
+### Parentheses
+`(2 * 5)` is valid syntaxt. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`).
+And, nested parentheses expressions are accepted: `(2 * ((5 * 2) / (9 - 5)))`.
+
+### Absolute-Values
+`[2 - 12]` is valid syntaxt. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`).
+And, nested absolute-value expressions are accepted: `[7 - 14] * [5 - 9 / [5 - 3]]`.
+
+---
+
+# Errors
+#### We do not need to say anything about errors, here is some of them:
+
+<img width="600" alt="unknown-char-error" src="https://user-images.githubusercontent.com/59066341/199575954-80072f65-df4a-4971-a195-bf15fafdff03.png"> <img width="600" alt="expected-an-token-error" src="https://user-images.githubusercontent.com/59066341/199575936-793d625e-a7fa-43e7-b3f2-e72f7494d758.png"> 
