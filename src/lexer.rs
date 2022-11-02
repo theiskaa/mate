@@ -22,7 +22,6 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     // Creates a new Lexer object with given input.
-    // Basically used at [Lexer::lex] function.
     fn new(input: &'a str) -> Result<Lexer, Error> {
         if input.len() < 1 {
             return Err(Error::empty_input());
@@ -104,7 +103,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    // The nesting-to-tokens algorithm impl.
+    // The nesting-to-tokens algorithm implementation.
     //
     // Nesting-to-tokens algorithm is a hashing algorithm that lexer uses to
     // parse parentheses expressions and put them into their nest level.
@@ -171,7 +170,8 @@ impl<'a> Lexer<'a> {
         return Ok(nested);
     }
 
-    // Collects all the tokens from exact one parentheses-expression-clip.
+    // Collects all tokens from exact one parentheses-expression-clip.
+    //
     // If [start] doesn't equals to any kind of opening(left) parentheses, result gonna be [None].
     fn take_till_end(tokens: Vec<Token>, start: usize) -> Option<(Vec<Token>, usize, bool)> {
         let mut iteration_count = start;
@@ -186,10 +186,10 @@ impl<'a> Lexer<'a> {
         }
 
         // Initialize the matcho_collection with start_token.
-        // In case of different kinds of parentheses(normal and abs) we have to track the
-        // nesting level my right matching token-types.
-        // So, if the opening is normal parentheses token, in case of closing abs parentheses
-        // we shouldn't decrement the level.
+        // In case of different kinds of parentheses([normal] and [abs]) we have to track the
+        // nesting level by right matching token-types.
+        // So, if the opening is normal parentheses token and closing is abs parentheses
+        // token we shouldn't decrement the level.
         let mut matcho_collection: Vec<Token> = vec![start_token.clone()];
 
         let mut collected: Vec<Token> = Vec::new();
@@ -250,7 +250,7 @@ impl<'a> Lexer<'a> {
                                 continue;
                             }
 
-                            // If the tokens at current point in nested, contains parentheses
+                            // If the tokens at current point in the [nested], contains parentheses
                             // that means we have to re-nest and re break them as tokens recursively..
                             match Lexer::nest_parentheses(v.0.clone()) {
                                 Err(e) => return Err(e),
@@ -281,8 +281,8 @@ impl<'a> Lexer<'a> {
     // multiplication and division aren't collected together.
     // To take care of arithmetic's "process priority", we have
     // first calculate the multiplication or division action, and
-    // then continue to the other ones.
-    // So, that, we have to convert the multiplication and division
+    // then continue with the other ones.
+    // So, we have to convert the multiplication and division
     // parts of main expression into the sub expressions.
     fn combine_tokens(tokens: Vec<Token>) -> Sub {
         let mut combined_tokens: Vec<Token> = Vec::new();
@@ -399,7 +399,7 @@ impl<'a> Lexer<'a> {
     }
 
     // Combines 1D sub expression power tokens to actual nested-power sub-expression vector.
-    //  For example: if given data is:
+    // > For example: if given data is:
     //   ╭────────────────╮                      ╭───────────────────╮
     //   │ 5 ^ 2 ^ 3 ^ 2  │ it'd be converted to │ 5 ^ (2 ^ (3 ^ 2)) │
     //   ╰────────────────╯                      ╰───────────────────╯

@@ -47,12 +47,14 @@ pub enum SubMethod {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
-    NUMBER,
     ILLEGAL,
-    POINTER,
+
+    // Internal
+    NUMBER,
 
     // Sub related tokens
     SUBEXP,
+    POINTER,
     LPAREN,
     RPAREN,
     LABS,

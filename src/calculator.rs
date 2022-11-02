@@ -17,6 +17,7 @@ pub struct Calculator {}
 impl Calculator {
     // Calculate, is token-to-number compiler of application.
     // Loops through input and returns final answer.
+    //
     // If there is an error, answer will be "ZERO", and error would be provided.
     // The input argument can be passed from function arguments, if it's not provided
     // from arguments, function uses default input of Calculator ──▶ [l.Input]
@@ -29,6 +30,7 @@ impl Calculator {
     //
     // For instance NUMBER(I) is 6, NUMBER(II) is 7,
     // and the operation is PRODUCT(Multiplication). Result of function would be ──▶ 6 * 7 = 42
+    //
     pub fn calculate(sub: Sub, input: &str) -> Result<f64, Error> {
         let mut result: f64 = 0.0;
         let tokens: Vec<Token> = sub.clone().tokens.clone();
@@ -95,7 +97,7 @@ impl Calculator {
 
     fn take_operation(i: usize, tokens: Vec<Token>, input: &str) -> Result<TokenType, Error> {
         // At first loop, operation must to be PLUS.
-        // Because, res is zero and we have to
+        // Because, the [res] is zero and we have to
         // add some value before starting working on it.
         if i == 0 {
             return Ok(TokenType::PLUS);

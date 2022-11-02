@@ -12,7 +12,7 @@ This crate is on [crates.io](http://crates.io/crates/mate-rs) and can be used by
 mate-rs = "0.1.3"
 ```
 
-# Example: Simple usage | `Mate`
+# Example: with `Mate`
 
 `Mate` is general wrapper structure for `Lexer` and `Calculator`.
 has only one method that used to `calculate` result via string(&str) input.
@@ -29,7 +29,7 @@ match result {
 };
 ```
 
-# Example: Complicated usage | `Lexer` and `Calculator`
+# Example: with `Lexer` and `Calculator`
 
 `Lexer` is the main structure that parses string-input to token-list.
 `Calculator` is the structure that used to calculate final result via `Lexer`'s result.
@@ -38,19 +38,42 @@ match result {
 use mate_rs::{calculator::Calculator, lexer::Lexer};
 
 // Generated tokens gonna be something like:
-//  | Token(type: NUMBER  literal: "-2"),
-//  | Token(type: PLUS    literal: "+"),
-//  | Token(type: NUMBER  literal: "2"),
-//  | Token(type: PLUS    literal: "+"),
+//  |
 //  | Token(
 //  |   type: SUBEXP,
 //  |   tokens: [
-//  |        Token(type: NUMBER,  literal: "6")
-//  |        Token(type: PRODUCT, literal: "*")
-//  |        Token(type: NUMBER,  literal: "7")
+//  |        Token(
+//  |          type: SUBEXP,
+//  |          tokens: [
+//  |               Token(type: NUMBER,  literal: "2")
+//  |               Token(type: PLUS,    literal: "+")
+//  |               Token(type: NUMBER,  literal: "5")
+//  |          ],
+//  |        ),
+//  |        Token(type: PRODUCT, literal: "*"),
+//  |        Token(
+//  |          type: SUBEXP,
+//  |          tokens: [
+//  |               Token(type: NUMBER,  literal: "5")
+//  |               Token(type: MINUS,   literal: "-")
+//  |               Token(type: NUMBER,  literal: "9")
+//  |               Token(type: PLUS,    literal: "+")
+//  |               Token(
+//  |                 type: SUBEXP,
+//  |                 tokens: [
+//  |                      Token(type: NUMBER,  literal: "8")
+//  |                      Token(type: PLUS,    literal: "-")
+//  |                      Token(type: NUMBER,  literal: "5")
+//  |                 ],
+//  |               ),
+//  |          ],
+//  |        ),
 //  |   ],
 //  | ),
-let input = " - 2 + 2 + 6 * 7";
+//  | Token(type: PLUS,    literal: "+")
+//  | Token(type: NUMBER,  literal: "35")
+//  |
+let input = "[ (2 + 5) * (5 - 9 + (8 - 5)) ] + 35";
 let tokens = Lexer::lex(input.clone()).unwrap(); // should handle error case also
 
 // Result will be calculated from tokens, by X/O/Y algorithm.
