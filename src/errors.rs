@@ -80,14 +80,25 @@ impl Error {
         let pointer: String = String::from(" {X} ");
 
         for i in 1..pointer.len() {
-            let p: usize = (point as usize) + i;
+            let p: i32 = point + (i as i32);
             let pch: char = pointer.chars().nth(i - 1).unwrap();
 
-            let back_ch: char = match inpt.chars().nth(p - 1) {
+            // shortcut handle for the error: "attempt to subtract with overflow problem".
+            // by that app won't 'cause any number overflow issues.
+            let backid: usize = {
+                if 0 > p - 1 {
+                    0
+                } else {
+                    (p - 1) as usize
+                }
+            };
+
+            let back_ch: char = match inpt.chars().nth(backid) {
                 Some(v) => v,
                 None => '0',
             };
-            let next_ch: char = match inpt.chars().nth(p + 1) {
+
+            let next_ch: char = match inpt.chars().nth((p + 1) as usize) {
                 Some(v) => v,
                 None => '0',
             };
@@ -96,7 +107,7 @@ impl Error {
                 continue;
             }
 
-            inpt.insert(p, pch);
+            inpt.insert(p as usize, pch);
         }
 
         // A split list of error explanation.
