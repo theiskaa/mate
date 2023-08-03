@@ -8,6 +8,8 @@
 
 Mate is a library for parsing and calculating arithmetic expressions inputted as &str(string). Uses Lexer(similar to interpreted-programming languages' lexer) structure to parse string input in to token list, and Calculator structure to calculate final result from token list. Implements also a general wrapper structure that implements Lexer and Calculator inside of it. And makes it easy to calculate arithmetic expression's result directly without dealing with parsing and calculating manually.
 
+**Note**: I want to clarify that this project is purely a demo and not intended for production use. It represents my initial steps in learning to create a programming language.
+
 # Usage
 
 This crate is on [crates.io](http://crates.io/crates/mate-rs) and can be used by adding mate-rs to your dependencies in your project's `Cargo.toml`.
@@ -41,45 +43,55 @@ match result {
 ```rust
 use mate_rs::{calculator::Calculator, lexer::Lexer};
 
-// Generated tokens gonna be something like:
-//  |
-//  | Token(
-//  |   type: SUBEXP,
-//  |   tokens: [
-//  |        Token(
-//  |          type: SUBEXP,
-//  |          tokens: [
-//  |               Token(type: NUMBER,  literal: "2")
-//  |               Token(type: PLUS,    literal: "+")
-//  |               Token(type: NUMBER,  literal: "5")
-//  |          ],
-//  |        ),
-//  |        Token(type: PRODUCT, literal: "*"),
-//  |        Token(
-//  |          type: SUBEXP,
-//  |          tokens: [
-//  |               Token(type: NUMBER,  literal: "5")
-//  |               Token(type: MINUS,   literal: "-")
-//  |               Token(type: NUMBER,  literal: "9")
-//  |               Token(type: PLUS,    literal: "+")
-//  |               Token(
-//  |                 type: SUBEXP,
-//  |                 tokens: [
-//  |                      Token(type: NUMBER,  literal: "8")
-//  |                      Token(type: PLUS,    literal: "-")
-//  |                      Token(type: NUMBER,  literal: "5")
-//  |                 ],
-//  |               ),
-//  |          ],
-//  |        ),
-//  |   ],
-//  | ),
-//  | Token(type: PLUS,    literal: "+")
-//  | Token(type: NUMBER,  literal: "35")
-//  |
 let input = "[ (2 + 5) * (5 - 9 + (8 - 5)) ] + 35";
 let tokens = Lexer::lex(input.clone()).unwrap(); // should handle error case also
+```
 
+<details close>
+<summary>See the generated token tree</summary>
+<br>
+<pre>
+<code>
+// Generated tokens gonna be something like:
+//
+//   Token(
+//     type: SUBEXP,
+//     tokens: [
+//          Token(
+//            type: SUBEXP,
+//            tokens: [
+//                 Token(type: NUMBER,  literal: "2")
+//                 Token(type: PLUS,    literal: "+")
+//                 Token(type: NUMBER,  literal: "5")
+//            ],
+//          ),
+//          Token(type: PRODUCT, literal: "*"),
+//          Token(
+//            type: SUBEXP,
+//            tokens: [
+//                 Token(type: NUMBER,  literal: "5")
+//                 Token(type: MINUS,   literal: "-")
+//                 Token(type: NUMBER,  literal: "9")
+//                 Token(type: PLUS,    literal: "+")
+//                 Token(
+//                   type: SUBEXP,
+//                   tokens: [
+//                        Token(type: NUMBER,  literal: "8")
+//                        Token(type: PLUS,    literal: "-")
+//                        Token(type: NUMBER,  literal: "5")
+//                   ],
+//                 ),
+//            ],
+//          ),
+//     ],
+//   ),
+//   Token(type: PLUS,    literal: "+")
+//   Token(type: NUMBER,  literal: "35")
+</code>
+</pre>
+</details>
+
+```rust
 // Result will be calculated from tokens, by X/O/Y algorithm.
 //
 //  ╭────────╮ ╭───────────╮ ╭────────╮
@@ -96,7 +108,7 @@ let result = Calculator::calculate(tokens, input.clone());
 
 # How it works
 Mate is all about two main structures, [Lexer] and [Calculator].
-[Lexer] is the structure that takes care of parsing interpretting given string expression, 
+[Lexer] is the structure that takes care of parsing interpretting given string expression,
 and [Calculator] is the structure that takes care of calculating final result via parsed tokens.
 
 ## Lexer
@@ -106,7 +118,7 @@ We've several types of main tokens and they are:
 - `NUMBER` - number type.
 - `MINUS`, `PLUS`, `PRODUCT`, `DIVIDE`, `PERCENTAGE`, `POWER` - operations.
 - `LPAREN`, `RPAREN` - parentheses.
-- `LABS`, `LPAREN` - absolute values.
+- `LABS`, `RABS` - absolute values.
 - `SUBEXP` - sub expression, expressions inside of parentheses, abs, or combinations of division and multiplication.
 
 Lexer's `lex` functionality converts each character to one of these tokens.
@@ -160,10 +172,3 @@ And, nested parentheses expressions are accepted: `(2 * ((5 * 2) / (9 - 5)))`.
 ### Absolute-Values
 `[2 - 12]` is valid syntaxt. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`).
 And, nested absolute-value expressions are accepted: `[7 - 14] * [5 - 9 / [5 - 3]]`.
-
----
-
-# Errors
-#### We do not need to say anything about errors, here is some of them:
-
-<img width="600" alt="unknown-char-error" src="https://user-images.githubusercontent.com/59066341/199575954-80072f65-df4a-4971-a195-bf15fafdff03.png"> <img width="600" alt="expected-an-token-error" src="https://user-images.githubusercontent.com/59066341/199575936-793d625e-a7fa-43e7-b3f2-e72f7494d758.png"> 
