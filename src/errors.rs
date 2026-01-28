@@ -171,7 +171,7 @@ impl Error {
     //         | > that we do not have yet, please open an issue:
     //         | >   -> https://github.com/theiskaa/mate/issues/new
     // ```
-    pub fn illeagal_token(input: String, token: Token) -> Self {
+    pub fn illegal_token(input: String, token: Token) -> Self {
         let message = format!(
             "error: found an illegal character: `{}` \n\n",
             token.clone().literal

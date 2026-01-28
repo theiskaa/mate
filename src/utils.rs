@@ -5,7 +5,6 @@
 //
 
 use crate::token::{Token, TokenType};
-use regex::Regex;
 
 //
 // A interface for custom char-type-checking utility methods.
@@ -59,7 +58,7 @@ pub trait ChUtils {
 
 impl ChUtils for String {
     fn is_number(&self) -> bool {
-        Regex::new("[[:digit:]]").unwrap().is_match(self)
+        self.chars().any(|c| c.is_ascii_digit())
     }
 
     fn is_point(&self) -> bool {

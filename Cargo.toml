@@ -11,5 +11,3 @@ license-file = "LICENSE"
 keywords = ["interpreter", "parser", "calculator"]
 
 [dependencies]
-substring = "1.4.5"
-regex = "1"

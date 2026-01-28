@@ -10,7 +10,6 @@ use crate::{
     utils::ChUtils,
 };
 use std::{cell::Cell, collections::HashMap};
-use substring::Substring;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Lexer<'a> {
@@ -191,9 +190,12 @@ impl<'a> Lexer<'a> {
 
         let mut level: i32 = 1;
 
-        // [start] indexed value should always equal to an any kind of opening parentheses
-        let start_token = tokens.clone()[start].clone();
-        if !start_token.is_lparen() && !start_token.is_labs() || start > tokens.clone().len() {
+        if start >= tokens.len() {
+            return None;
+        }
+
+        let start_token = tokens[start].clone();
+        if !start_token.is_lparen() && !start_token.is_labs() {
             return None;
         }
 
@@ -572,7 +574,11 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        let num = input.substring(start, self.position.get()).to_string();
+        let num: String = input
+            .chars()
+            .skip(start)
+            .take(self.position.get() - start)
+            .collect();
         let end = match num.chars().last() {
             None => self.position.get(),
             Some(v) => {

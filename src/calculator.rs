@@ -30,16 +30,14 @@ impl Calculator {
     //
     pub fn calculate(sub: Sub, input: &str) -> Result<f64, Error> {
         let mut result: f64 = 0.0;
-        let tokens: Vec<Token> = sub.clone().tokens.clone();
+        let tokens = &sub.tokens;
 
         if tokens.is_empty() {
             return Err(Error::empty_tokens());
         }
 
-        // In case of having one but sub-expression token
-        // We have to use its sub tokens to calculate.
-        if tokens.len() == 1 && tokens[0].clone().is_sub_exp() {
-            return Calculator::calculate(tokens[0].clone().sub, input);
+        if tokens.len() == 1 && tokens[0].is_sub_exp() {
+            return Calculator::calculate(tokens[0].sub.clone(), input);
         }
 
         let mut i: usize = 0;
@@ -49,21 +47,18 @@ impl Calculator {
                 return Err(Error::missing_some_tokens(input.to_string(), point));
             }
 
-            let token: Token = tokens[i].clone();
-            if token.clone().is_illegal() {
-                return Err(Error::illeagal_token(input.to_string(), token));
+            let token = &tokens[i];
+            if token.is_illegal() {
+                return Err(Error::illegal_token(input.to_string(), token.clone()));
             }
 
             let mut y: f64 = 0.0;
             let x: f64 = result;
-            let operation: TokenType = match Calculator::take_operation(i, tokens.clone(), input) {
-                Ok(v) => v,
-                Err(e) => return Err(e),
-            };
+            let operation: TokenType = Calculator::take_operation(i, tokens, input)?;
 
             let y_point = token.index.1;
-            if token.clone().is_number() {
-                y = match token.clone().literal.as_str().parse::<f64>() {
+            if token.is_number() {
+                y = match token.literal.as_str().parse::<f64>() {
                     Ok(v) => v,
                     Err(_) => {
                         return Err(Error::cannot_parse_to_number(
@@ -72,19 +67,15 @@ impl Calculator {
                         ))
                     }
                 };
-            } else if token.clone().is_sub_exp() {
-                y = match Calculator::calculate(token.clone().sub, input) {
-                    Ok(v) => v,
-                    Err(e) => return Err(e),
-                };
+            } else if token.is_sub_exp() {
+                y = Calculator::calculate(token.sub.clone(), input)?;
             }
 
-            // Update res by current X/Y/O.
             result = Calculator::execute_operation(x, y, operation, input, y_point)?;
             i += 2;
         }
 
-        let result = match sub.clone().method {
+        let result = match sub.method {
             SubMethod::PAREN => result,
             SubMethod::ABS => result.abs(),
         };
@@ -92,36 +83,30 @@ impl Calculator {
         Ok(result)
     }
 
-    fn take_operation(i: usize, tokens: Vec<Token>, input: &str) -> Result<TokenType, Error> {
-        // At first loop, operation must to be PLUS.
-        // Because, the [res] is zero and we have to
-        // add some value before starting working on it.
+    fn take_operation(i: usize, tokens: &[Token], input: &str) -> Result<TokenType, Error> {
         if i == 0 {
             return Ok(TokenType::PLUS);
         }
 
-        if tokens.len() - 1 < i - 1 {
+        if i - 1 >= tokens.len() {
             let point = tokens.last().unwrap().index.1;
             return Err(Error::missing_some_tokens(input.to_string(), point));
         }
 
-        if tokens.clone()[i - 1].clone().is_illegal() {
-            return Err(Error::illeagal_token(
-                input.to_string(),
-                tokens.clone()[i - 1].clone(),
-            ));
+        let prev_token = &tokens[i - 1];
+        if prev_token.is_illegal() {
+            return Err(Error::illegal_token(input.to_string(), prev_token.clone()));
         }
 
-        let is_plus_or_minus = tokens.clone()[i - 1].clone().is_plus_or_minus();
-        let is_div_or_prod = tokens.clone()[i - 1].clone().is_div_or_prod();
-        let is_percentage = tokens.clone()[i - 1].clone().is_percentage();
-        let is_power = tokens.clone()[i - 1].clone().is_power();
-
-        if is_plus_or_minus || is_div_or_prod || is_percentage || is_power {
-            return Ok(tokens.clone()[i - 1].clone().typ);
+        if prev_token.is_plus_or_minus()
+            || prev_token.is_div_or_prod()
+            || prev_token.is_percentage()
+            || prev_token.is_power()
+        {
+            return Ok(prev_token.typ.clone());
         }
 
-        return Err(Error::invalid_order());
+        Err(Error::invalid_order())
     }
 
     // Executes the given [operation] for [X] and [Y]
