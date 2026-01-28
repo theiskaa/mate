@@ -1,39 +1,75 @@
-# v0.1.4
-The fifth version of mate.
-1. Added high-level error handling and errors: [see in docs](https://github.com/theiskaa/mate#errors)
-2. Implemented functionality to parse and calculate absolute-value expressions.
- 
-- **Pull Requests:** [#22](https://github.com/theiskaa/mate/pull/22) & [#23](https://github.com/theiskaa/mate/pull/23)
+# Changelog
 
-- **H-E that versions has ability to solve**: `[ 2 - 12 ] / 2` -> *`5`*
+## v0.2.0
 
-# v0.1.3
-The fourth version of mate.
-Implemented functionality to parse and calculate power expressions.
+Major update with math functions, improved error handling, and project restructure.
 
+### New Features
+- Added 10 math functions: `sqrt`, `sin`, `cos`, `tan`, `log`, `ln`, `exp`, `floor`, `ceil`, `round`
+- Functions support nesting: `sqrt(floor(17))`, `sin(cos(0))`
+- Functions work in expressions: `2 * sqrt(16) + 1`
+- Improved REPL with help, quit, clear, and tokens commands
+- Added CLI argument support (`-h`, `-v`, `-t`, direct expressions)
+
+### Bug Fixes
+- Fixed division by zero (now returns proper error)
+- Fixed panic on mismatched parentheses
+- Fixed operator precedence bug with percentage operations
+- Replaced all unsafe `.unwrap()` calls with proper error handling
+- Fixed UTF-8 character handling in error messages
+
+### Code Quality
+- Restructured project to single crate with lib and bin
+- Removed unnecessary dependencies (`regex`, `substring`)
+- Fixed all clippy warnings
+- Expanded test coverage to 57 tests
+
+---
+
+## v0.1.4
+
+Added error handling and absolute value expressions.
+
+- Implemented high-level error handling with descriptive messages
+- Added absolute value expression parsing: `[-5]` returns `5`
+- **Pull Requests:** [#22](https://github.com/theiskaa/mate/pull/22), [#23](https://github.com/theiskaa/mate/pull/23)
+
+---
+
+## v0.1.3
+
+Added power expressions.
+
+- Implemented power operator: `5 ^ 2` returns `25`
+- Supports chained powers: `2 ^ 3 ^ 2` evaluates as `2 ^ (3 ^ 2)`
 - **Pull Request:** [#20](https://github.com/theiskaa/mate/pull/20)
 
-- **H-E that versions has ability to solve**: `5 ^ 2` -> *`25`*
+---
 
-# v0.1.2
-The third version of mate.
-Implemented functionality to understood and auto-append multiplication between two number(normal number & sub-expression) tokens.
+## v0.1.2
 
+Added implicit multiplication.
+
+- Auto-append multiplication between adjacent numbers and sub-expressions
+- Example: `4(9 + 5)(9 - 3)` returns `336`
 - **Pull Request:** [#19](https://github.com/theiskaa/mate/pull/19)
 
-> **H-E that version has ability to solve**: `4(9 + 5)(9 - 3)` -> *`336`*
+---
 
-# v0.1.1
-The second version of mate.
-Implemented the new percentage token. Which means besides of addition, subtraction, division, and multiplication. Now, it can parse and calculate percentage expressions.
+## v0.1.1
 
+Added percentage operator.
+
+- Implemented percentage token: `50 % 5` returns `2.5` (5% of 50)
+- Works with sub-expressions: `50 % 5 + (100 % 2.5)` returns `5`
 - **Pull Request:** [#18](https://github.com/theiskaa/mate/pull/18)
 
-> **H-E that version has ability to solve**: `50 % 5 + (100 % 2.5)` -> *`5`*
+---
 
-# v0.1.0
+## v0.1.0
 
-The very first version of mate.
-Has ability to parse simple arithmetic expressions(addition, subtraction, division, and multiplication) + nested expressions with parentheses.
+Initial release.
 
-> **H-E that version has ability to solve**: `5 + (2 + (10 - (2.5 + 2.5))) * (5 - 9 / (8 - (2.5 * 2)))` -> *`19`*
+- Basic arithmetic: addition, subtraction, multiplication, division
+- Parentheses grouping with nesting support
+- Example: `5 + (2 + (10 - 5)) * (5 - 9 / (8 - 5))` returns `19`

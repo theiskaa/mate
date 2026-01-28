@@ -1,26 +1,68 @@
-<p align="center">
- <img width="350" src="https://user-images.githubusercontent.com/59066341/138941465-a4354274-3976-4571-bdcd-df031d7d4761.png" alt="Package Logo">
- <br>
- <a href="https://github.com/theiskaa/mate/blob/main/LICENSE">
-  <img src="https://img.shields.io/badge/License-MIT-red.svg" alt="License: MIT"/>
- </a>
-</p>
+# mate
 
-Mate is a library designed for parsing and calculating arithmetic expressions inputted as strings. It utilizes a Lexer structure, similar to those found in interpreted programming languages, to parse string input into a token list. The Calculator structure is then used to compute the final result from this token list. A general wrapper structure is also implemented that encapsulates both the Lexer and Calculator, simplifying the process of calculating arithmetic expression results without the need for manual parsing and calculation.
+[![Crates.io](https://img.shields.io/crates/v/mate-rs)](https://crates.io/crates/mate-rs)
+[![License](https://img.shields.io/crates/l/mate-rs)](LICENSE)
+[![Downloads](https://img.shields.io/crates/d/mate-rs)](https://crates.io/crates/mate-rs)
+[![GitHub Stars](https://img.shields.io/github/stars/theiskaa/mate)](https://github.com/theiskaa/mate/stargazers)
 
-**Note**: This project serves as a demonstration and is not intended for production use. It represents my initial steps in learning to create a programming language.
+A simple and lightweight arithmetic expression interpreter written in Rust. Mate parses string expressions using a lexer that generates a token tree, then calculates results using an X/O/Y algorithm. Supports basic arithmetic, parentheses, absolute values, powers, percentages, and mathematical functions.
 
-# Usage
+Both binary and library are provided. The binary offers an interactive REPL and direct expression evaluation. The library enables programmatic calculation with full access to the lexer and calculator components.
 
-This crate is available on [crates.io](http://crates.io/crates/mate-rs) and can be added to your project's dependencies in your `Cargo.toml` file.
-```toml
-[dependencies]
-mate-rs = "0.1.4"
+## Install binary
+Install the binary globally:
+
+```bash
+cargo install mate-rs
 ```
 
-## Example: Using `Mate`
+For the latest git version:
 
-`Mate` is a general wrapper structure for `Lexer` and `Calculator`. It provides a single method for calculating results from string input.
+```bash
+cargo install --git https://github.com/theiskaa/mate
+```
+
+## Install as library
+
+Add to your project:
+
+```bash
+cargo add mate-rs
+```
+
+Or add to your Cargo.toml:
+
+```toml
+mate-rs = "0.2.0"
+```
+
+## Usage
+
+### Command Line
+
+Evaluate expressions directly:
+
+```bash
+mate 2 + 2
+mate "(5 + 3) * 2"
+mate "sqrt(16) + sin(3.14159 / 2)"
+```
+
+Start interactive REPL:
+
+```bash
+mate
+```
+
+Show parsed tokens with `-t` flag:
+
+```bash
+mate -t "10 / 2"
+```
+
+### Library Usage
+
+Using the `Mate` wrapper for simple calculations:
 
 ```rust
 use mate_rs::mate::Mate;
@@ -28,107 +70,66 @@ use mate_rs::mate::Mate;
 let result = Mate::calculate("6 * 7");
 match result {
     Ok(v) => assert_eq!(v, 42.0),
-    Err(_) => {
-        // Handle error ...
-    }
+    Err(e) => println!("Error: {}", e),
 };
 ```
 
-## Example: Using `Lexer` and `Calculator`
-
-`Lexer` is the primary structure that parses string input into a token list. `Calculator` is used to compute the final result from the `Lexer`'s output.
+Using `Lexer` and `Calculator` separately:
 
 ```rust
 use mate_rs::{calculator::Calculator, lexer::Lexer};
 
 let input = "[ (2 + 5) * (5 - 9 + (8 - 5)) ] + 35";
-let tokens = Lexer::lex(input.clone()).unwrap(); // Error handling should also be implemented
+let tokens = Lexer::lex(input).unwrap();
+let result = Calculator::calculate(tokens, input);
 ```
 
-<details close>
-<summary>View the generated token tree</summary>
-<br>
-<pre>
-<code>
-// The generated tokens will resemble the following:
-//
-//   Token(
-//     type: SUBEXP,
-//     tokens: [
-//          Token(
-//            type: SUBEXP,
-//            tokens: [
-//                 Token(type: NUMBER,  literal: "2")
-//                 Token(type: PLUS,    literal: "+")
-//                 Token(type: NUMBER,  literal: "5")
-//            ],
-//          ),
-//          Token(type: PRODUCT, literal: "*"),
-//          Token(
-//            type: SUBEXP,
-//            tokens: [
-//                 Token(type: NUMBER,  literal: "5")
-//                 Token(type: MINUS,   literal: "-")
-//                 Token(type: NUMBER,  literal: "9")
-//                 Token(type: PLUS,    literal: "+")
-//                 Token(
-//                   type: SUBEXP,
-//                   tokens: [
-//                        Token(type: NUMBER,  literal: "8")
-//                        Token(type: PLUS,    literal: "-")
-//                        Token(type: NUMBER,  literal: "5")
-//                   ],
-//                 ),
-//            ],
-//          ),
-//     ],
-//   ),
-//   Token(type: PLUS,    literal: "+")
-//   Token(type: NUMBER,  literal: "35")
-</code>
-</pre>
-</details>
+## Supported Operations
 
-```rust
-// The result is calculated from the tokens using the X/O/Y algorithm.
-//
-//  ╭────────╮ ╭───────────╮ ╭────────╮
-//  │ NUMBER │ │ OPERATION │ │ NUMBER │
-//  ╰────────╯ ╰───────────╯ ╰────────╯
-//       ╰───╮       │        ╭───╯
-//           ▼       ▼        ▼
-//           X  [+, -, *, /]  Y
-//
-let result = Calculator::calculate(tokens, input.clone());
-```
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `+` | Addition | `2 + 3` |
+| `-` | Subtraction | `5 - 2` |
+| `*` | Multiplication | `4 * 3` |
+| `/` | Division | `10 / 2` |
+| `%` | Percentage | `50 % 10` (10% of 50 = 5) |
+| `^` | Power | `2 ^ 3` (= 8) |
+| `()` | Parentheses | `(2 + 3) * 4` |
+| `[]` | Absolute value | `[-5]` (= 5) |
 
----
+## Math Functions
 
-# How it Works
-Mate primarily consists of two main structures: [Lexer] and [Calculator]. The [Lexer] structure is responsible for parsing and interpreting the given string expression, while the [Calculator] structure calculates the final result from the parsed tokens.
+| Function | Description | Example |
+|----------|-------------|---------|
+| `sqrt(x)` | Square root | `sqrt(16)` (= 4) |
+| `sin(x)` | Sine (radians) | `sin(3.14159 / 2)` |
+| `cos(x)` | Cosine (radians) | `cos(0)` (= 1) |
+| `tan(x)` | Tangent (radians) | `tan(0.785)` |
+| `log(x)` | Base-10 logarithm | `log(100)` (= 2) |
+| `ln(x)` | Natural logarithm | `ln(2.718)` |
+| `exp(x)` | Exponential (e^x) | `exp(1)` |
+| `floor(x)` | Round down | `floor(3.7)` (= 3) |
+| `ceil(x)` | Round up | `ceil(3.2)` (= 4) |
+| `round(x)` | Round to nearest | `round(3.5)` (= 4) |
 
-## Lexer
-The Lexer iterates through the given input string, reading and converting each character into a [Token] structure. The main types of tokens include:
-- `ILLEGAL` - Represents an illegal character.
-- `NUMBER` - Represents a number.
-- `MINUS`, `PLUS`, `PRODUCT`, `DIVIDE`, `PERCENTAGE`, `POWER` - Represents operations.
-- `LPAREN`, `RPAREN` - Represents parentheses.
-- `LABS`, `RABS` - Represents absolute values.
-- `SUBEXP` - Represents sub-expressions, which are expressions inside parentheses, absolute values, or combinations of division and multiplication.
+Functions can be nested: `sqrt(floor(17))`, `sin(cos(0))`, `2 * sqrt(16) + 1`
 
-The Lexer's `lex` function converts each character into one of these tokens. It groups tokens related to multiplication or division operations into a single sub-expression to maintain the correct operation priority. It also nests parentheses, absolute values, and powers using a custom level-to-expression algorithm.
+## How it Works
 
-The level-to-expression algorithm is a mapping algorithm that maps a specific expression to its nesting level.
+### Lexer
 
-For example, given the token list `(2 + 5) : (5 - 9 / (8 - 5))`, the generated result will be:
+The Lexer iterates through the input string, converting each character into tokens. It groups tokens related to multiplication or division operations into a single sub-expression to maintain correct operation priority. It also nests parentheses, absolute values, and powers using a level-to-expression algorithm.
+
+The level-to-expression algorithm maps each expression to its nesting level. For example, given the token list `(2 + 5) * (5 - 9 / (8 - 5))`:
 
 <img width="500" alt="mate" src="https://user-images.githubusercontent.com/59066341/192025304-220c58eb-8bbe-4820-bd6a-5f18b5b5758b.png">
 
-This approach ensures the correct operation priority is maintained.
+This approach ensures correct operation priority is maintained.
 
-## Calculator
+### Calculator
 
-The Calculator takes the parsed token list and calculates the final result. It uses a custom `X/O/Y` algorithm, also known as `X/OPERATION/Y`, where `X` and `Y` are numbers, and `O` is an operation. If `X` or `Y` cannot be obtained, they are taken as zero.
+The Calculator uses an X/O/Y algorithm where X and Y are numbers and O is an operation:
+
 ```
 ╭────────╮ ╭───────────╮ ╭────────╮
 │ NUMBER │ │ OPERATION │ │ NUMBER │
@@ -138,24 +139,8 @@ The Calculator takes the parsed token list and calculates the final result. It u
          X  [+, -, *, /]  Y
 ```
 
----
+Sub-expressions are recursively evaluated before the main calculation.
 
-# Syntax
+## Contributing
 
-The syntax of `Mate` is designed to be as simple and basic as possible. It follows the plain-text mathematics syntax with a few customizations. Here are some examples:
-
-### Addition and Subtraction
-`2 + 5` and `2 - 5` are valid syntaxes. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`).
-
-### Multiplication, Division, and Percentage
-`4 * 2`, `4 / 2`, and `4 % 2` are valid syntaxes. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`). Also, `4(10 / 2)` or `4(2)` are valid syntaxes for multiplication.
-
-### Power
-`4 ^ 2` is a valid syntax. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`). Continuous powers are also accepted: `4 ^ 2 ^ 3`, which will be automatically converted to `4 ^ (2 ^ 3)`.
-
-### Parentheses
-`(2 * 5)` is a valid syntax. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`). Nested parentheses expressions are also accepted: `(2 * ((5 * 2) / (9 - 5)))`.
-
-### Absolute Values
-`[2 - 12]` is a valid syntax. (in `x <operation> y` where x and y could be `NUMBER` or `SUBEXP`). Nested absolute-value expressions are also accepted: `[7 - 14] * [5 - 9 / [5 - 3]]`.
-
+For information regarding contributions, please refer to [CONTRIBUTING.md](CONTRIBUTING.md) file.
