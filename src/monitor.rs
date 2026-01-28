@@ -20,11 +20,11 @@ impl Monitor for Token {
 
         let nest: usize = n;
         if self.typ != TokenType::SUBEXP {
-            lit = format!("({})", self.literal.to_string());
+            lit = format!("({})", self.literal);
         } else {
             lit = String::new();
             for t in self.sub.tokens.iter().map(|t| t.to_string(nest + 1)) {
-                lit.push_str(format!("\n{}", t).as_str())
+                lit.push_str(format!("\n{t}").as_str())
             }
         }
 

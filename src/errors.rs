@@ -30,17 +30,17 @@ impl Error {
     //         | > explanation here.
     // ```
     fn indexed_error(input: String, point: i32, err: String, expl: Vec<&str>) -> Self {
-        let mut message = err.clone();
+        let mut message = err;
 
-        let tab: String = String::from("     ");
-        let mut space: String = String::from("");
+        let tab = "     ";
+        let mut space = String::new();
         for _ in 0..point - 1 {
-            space.push_str(" ");
+            space.push(' ');
         }
 
-        message.push_str(format!("{}\"{}\" \n", tab.clone(), input.trim_end()).as_str());
+        message.push_str(&format!("{tab}\"{}\" \n", input.trim_end()));
         for exp in expl.iter() {
-            message.push_str(format!(" {}{}{}\n", tab.clone(), space.clone(), exp).as_str());
+            message.push_str(&format!(" {tab}{space}{exp}\n"));
         }
 
         Self { msg: message }
@@ -74,36 +74,21 @@ impl Error {
     // ```
     //
     pub fn missing_some_tokens(input: String, point: i32) -> Self {
-        let message = format!("error: missing some tokens to calculate result\n\n");
+        let message = "error: missing some tokens to calculate result\n\n".to_string();
 
-        let mut inpt: String = input.clone().trim_end().to_string();
-        let pointer: String = String::from(" {X} ");
+        let mut inpt: String = input.trim_end().to_string();
+        let pointer = " {X} ";
 
         for i in 1..pointer.len() {
             let p: i32 = point + (i as i32);
             let pch: char = pointer.chars().nth(i - 1).unwrap();
 
-            // shortcut handle for the error: "attempt to subtract with overflow problem".
-            // by that app won't 'cause any number overflow issues.
-            let backid: usize = {
-                if 0 > p - 1 {
-                    0
-                } else {
-                    (p - 1) as usize
-                }
-            };
+            let backid: usize = if p < 1 { 0 } else { (p - 1) as usize };
 
-            let back_ch: char = match inpt.chars().nth(backid) {
-                Some(v) => v,
-                None => '0',
-            };
+            let back_ch = inpt.chars().nth(backid).unwrap_or('0');
+            let next_ch = inpt.chars().nth((p + 1) as usize).unwrap_or('0');
 
-            let next_ch: char = match inpt.chars().nth((p + 1) as usize) {
-                Some(v) => v,
-                None => '0',
-            };
-
-            if back_ch == ' ' && pch == ' ' || next_ch == ' ' && pch == ' ' {
+            if (back_ch == ' ' || next_ch == ' ') && pch == ' ' {
                 continue;
             }
 
@@ -152,29 +137,16 @@ impl Error {
         let space = "      ";
         let mut msg = String::from("error: invalid order of token characters\n");
 
-        msg.push_str(format!("{}A valid token/character order is:", space).as_str());
-        msg.push_str(format!("{}[Numerable], [Operation], [Numerable]", space).as_str());
+        msg.push_str(&format!("{space}A valid token/character order is:"));
+        msg.push_str(&format!("{space}[Numerable], [Operation], [Numerable]"));
 
         Self { msg }
     }
 
-    // A custom [indexed_error] implementation for illegal token error.
-    // Looks like:
-    //
-    // ```
-    // error: found an illegal character `<token-literal>`
-    //
-    //      "<your input here>"
-    //         |
-    //         | > We do not know how to parse this character
-    //         | > If you think this is a bug or a practical feature
-    //         | > that we do not have yet, please open an issue:
-    //         | >   -> https://github.com/theiskaa/mate/issues/new
-    // ```
     pub fn illegal_token(input: String, token: Token) -> Self {
         let message = format!(
             "error: found an illegal character: `{}` \n\n",
-            token.clone().literal
+            token.literal
         );
 
         // A split list of error explanation.

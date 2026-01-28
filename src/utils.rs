@@ -95,30 +95,19 @@ impl ChUtils for String {
 
 impl ChUtils for Token {
     fn is_number(&self) -> bool {
-        match self.typ {
-            TokenType::NUMBER => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::NUMBER)
     }
 
     fn is_point(&self) -> bool {
-        false // token has not point type at all.
+        false
     }
 
     fn is_plus_or_minus(&self) -> bool {
-        match self.typ {
-            TokenType::PLUS => true,
-            TokenType::MINUS => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::PLUS | TokenType::MINUS)
     }
 
     fn is_div_or_prod(&self) -> bool {
-        match self.typ {
-            TokenType::PRODUCT => true,
-            TokenType::DIVIDE => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::PRODUCT | TokenType::DIVIDE)
     }
 
     fn is_operation_sign(&self) -> bool {
@@ -142,10 +131,7 @@ impl ChUtils for Token {
     }
 
     fn is_percentage(&self) -> bool {
-        match self.typ {
-            TokenType::PERCENTAGE => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::PERCENTAGE)
     }
 }
 

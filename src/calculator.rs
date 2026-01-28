@@ -88,7 +88,7 @@ impl Calculator {
             return Ok(TokenType::PLUS);
         }
 
-        if i - 1 >= tokens.len() {
+        if i > tokens.len() {
             let point = tokens.last().unwrap().index.1;
             return Err(Error::missing_some_tokens(input.to_string(), point));
         }
