@@ -40,6 +40,20 @@ impl Calculator {
             return Calculator::calculate(tokens[0].sub.clone(), input);
         }
 
+        // Handle factorial: [NUMBER/SUBEXP, FACTORIAL]
+        if tokens.len() == 2 && tokens[1].is_factorial() {
+            let operand = if tokens[0].is_number() {
+                tokens[0].literal.parse::<f64>().map_err(|_| {
+                    Error::cannot_parse_to_number(input.to_string(), tokens[0].clone())
+                })?
+            } else if tokens[0].is_sub_exp() {
+                Calculator::calculate(tokens[0].sub.clone(), input)?
+            } else {
+                return Err(Error::missing_some_tokens(input.to_string(), tokens[0].index.1));
+            };
+            return Calculator::compute_factorial(operand);
+        }
+
         let mut i: usize = 0;
         while i <= tokens.len() {
             if i > tokens.len() - 1 {
@@ -157,6 +171,40 @@ impl Calculator {
             TokenType::POWER => f64::powf(x, y),
             _ => 0.0,
         };
+
+        Ok(result)
+    }
+
+    // Computes the factorial of a non-negative integer.
+    // n! = n * (n-1) * (n-2) * ... * 2 * 1
+    // 0! = 1 by definition
+    fn compute_factorial(n: f64) -> Result<f64, Error> {
+        // Check if n is a non-negative integer
+        if n < 0.0 {
+            return Err(Error::new(format!(
+                "error: factorial is not defined for negative numbers: {n}"
+            )));
+        }
+
+        if n != n.floor() {
+            return Err(Error::new(format!(
+                "error: factorial is only defined for integers: {n}"
+            )));
+        }
+
+        let n = n as u64;
+
+        // Factorial grows very fast, limit to reasonable values
+        if n > 170 {
+            return Err(Error::new(format!(
+                "error: factorial of {n} is too large to compute"
+            )));
+        }
+
+        let mut result: f64 = 1.0;
+        for i in 2..=n {
+            result *= i as f64;
+        }
 
         Ok(result)
     }
@@ -733,6 +781,341 @@ mod tests {
             ("ln(exp(1) * exp(1))", 2.0),
             ("sqrt(sqrt(16) * sqrt(16))", 4.0),
             ("floor(sqrt(16) + 0.5)", 4.0),
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_basic() {
+        let cases: HashMap<&str, f64> = HashMap::from([
+            ("0!", 1.0),
+            ("1!", 1.0),
+            ("2!", 2.0),
+            ("3!", 6.0),
+            ("4!", 24.0),
+            ("5!", 120.0),
+            ("6!", 720.0),
+            ("7!", 5040.0),
+            ("8!", 40320.0),
+            ("9!", 362880.0),
+            ("10!", 3628800.0),
+            ("12!", 479001600.0),
+            ("15!", 1307674368000.0),
+            ("20!", 2432902008176640000.0),
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-5,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_in_expressions() {
+        let cases: HashMap<&str, f64> = HashMap::from([
+            // Addition and subtraction
+            ("5! + 10", 130.0),
+            ("5! - 10", 110.0),
+            ("10 + 5!", 130.0),
+            ("10 - 5!", -110.0),
+            ("5! + 5!", 240.0),
+            ("3! + 4!", 30.0),
+            ("3! + 4! + 5!", 150.0),
+            // Multiplication and division
+            ("2 * 5!", 240.0),
+            ("5! * 2", 240.0),
+            ("5! / 10", 12.0),
+            ("5! / 2!", 60.0),
+            ("3! * 4!", 144.0),
+            ("6! / 3!", 120.0),
+            // Power
+            ("5! ^ 2", 14400.0),
+            ("2 ^ 3!", 64.0),
+            ("2 ^ 4!", 16777216.0),
+            ("3! ^ 2", 36.0),
+            ("2! ^ 3!", 64.0),
+            // Percentage
+            ("5! % 10", 12.0),
+            ("100 % 5!", 120.0),
+            // Mixed operations
+            ("5! + 3! * 4", 144.0),
+            ("3! * 4 + 5!", 144.0),
+            ("5! / 3! + 10", 30.0),
+            ("10 + 5! / 3!", 30.0),
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_with_parentheses() {
+        let cases: HashMap<&str, f64> = HashMap::from([
+            ("(2 + 3)!", 120.0),
+            ("(1 + 1)!", 2.0),
+            ("(10 - 5)!", 120.0),
+            ("(2 * 3)!", 720.0),
+            ("(6 / 2)!", 6.0),
+            ("(2 ^ 2)!", 24.0),
+            ("(1 + 2 + 3)!", 720.0),
+            ("((2 + 1))!", 6.0),
+            ("(((3)))!", 6.0),
+            ("(5 - 3 + 2)!", 24.0),
+            ("(2 * 2 + 1)!", 120.0),
+            ("(10 / 2 - 1)!", 24.0),
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_with_absolute_value() {
+        let cases: HashMap<&str, f64> = HashMap::from([
+            ("[5]!", 120.0),
+            ("[-5 + 10]!", 120.0),
+            ("[3 - 8]!", 120.0),
+            ("[2 - 5]!", 6.0),
+            ("[-3]!", 6.0),
+            ("[5! - 200]", 80.0),
+            ("[3! - 10]", 4.0),
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_with_functions() {
+        let cases: HashMap<&str, f64> = HashMap::from([
+            // Functions taking factorial as argument
+            ("sqrt(4!)", 24.0_f64.sqrt()),
+            ("sqrt(5!)", 120.0_f64.sqrt()),
+            ("sqrt(6!)", 720.0_f64.sqrt()),
+            ("log(6!)", 720.0_f64.log10()),
+            ("ln(5!)", 120.0_f64.ln()),
+            ("floor(5! / 7)", 17.0),
+            ("ceil(5! / 7)", 18.0),
+            ("round(5! / 7)", 17.0),
+            ("floor(sqrt(5!))", 10.0),
+            ("ceil(sqrt(5!))", 11.0),
+            // Factorial of function results
+            ("floor(3.9)!", 6.0),
+            ("ceil(2.1)!", 6.0),
+            ("round(2.5)!", 6.0),
+            ("round(4.4)!", 24.0),
+            // Combined
+            ("sqrt(4!) + 3!", 6.0 + 24.0_f64.sqrt()),
+            ("floor(5! / 10) + ceil(3! / 4)", 14.0),
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-9,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_nested() {
+        let cases: HashMap<&str, f64> = HashMap::from([
+            ("(3!)!", 720.0),       // 3! = 6, 6! = 720
+            ("(2!)!", 2.0),         // 2! = 2, 2! = 2
+            ("((2!)!)!", 2.0),      // 2! = 2, 2! = 2, 2! = 2
+            ("(1 + 2)!", 6.0),
+            ("((1 + 1)!)!", 2.0),   // (1+1)! = 2! = 2, 2! = 2
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_complex_expressions() {
+        let cases: HashMap<&str, f64> = HashMap::from([
+            ("5! + 4! + 3! + 2! + 1! + 0!", 154.0),
+            ("5! - 4! - 3! - 2! - 1! - 0!", 86.0),
+            ("5! * 2 + 4! * 3 + 3! * 4", 336.0),
+            ("(5! + 4!) / (3! + 2!)", 18.0),
+            ("5! / 4! + 4! / 3! + 3! / 2!", 12.0),
+            ("2 ^ 3! - 3 ^ 2!", 55.0),
+            ("sqrt(5! + 4!) / 2", 6.0),
+            ("(5! - 4!) * (3! - 2!)", 384.0),
+            ("5! % 50 + 4! % 10", 62.4),
+            ("[5! - 150] + [4! - 30]", 36.0),
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-9,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_boundary_values() {
+        // Test boundary: 170! is the largest factorial that fits in f64
+        let sub = Lexer::lex("170!").unwrap();
+        let result = Calculator::calculate(sub, "170!");
+        assert!(result.is_ok(), "170! should be computable");
+        assert!(result.unwrap().is_finite(), "170! should be finite");
+
+        // Test that 171! returns error (too large)
+        let sub = Lexer::lex("171!").unwrap();
+        let result = Calculator::calculate(sub, "171!");
+        assert!(result.is_err(), "171! should return error (too large)");
+
+        // Test large but valid factorial
+        let sub = Lexer::lex("100!").unwrap();
+        let result = Calculator::calculate(sub, "100!");
+        assert!(result.is_ok(), "100! should be computable");
+    }
+
+    #[test]
+    fn factorial_with_decimals_that_are_integers() {
+        // 3.0 should work since it's mathematically an integer
+        let cases: HashMap<&str, f64> = HashMap::from([
+            ("3.0!", 6.0),
+            ("5.0!", 120.0),
+            ("0.0!", 1.0),
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_errors() {
+        let error_cases: Vec<&str> = vec![
+            // Negative numbers
+            "(-1)!",
+            "(-5)!",
+            "(-10)!",
+            "(0 - 1)!",
+            "(5 - 10)!",
+            // Non-integers
+            "3.5!",
+            "2.1!",
+            "0.5!",
+            "2.9!",
+            "(5 / 2)!",
+            // Too large
+            "171!",
+            "200!",
+            "1000!",
+        ];
+
+        for input in error_cases {
+            let result = match Lexer::lex(input) {
+                Ok(sub) => Calculator::calculate(sub, input),
+                Err(e) => Err(e),
+            };
+            assert!(
+                result.is_err(),
+                "Expected error for input: {}, got: {:?}",
+                input,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn factorial_operator_precedence() {
+        // Factorial should bind tighter than other operators
+        let cases: HashMap<&str, f64> = HashMap::from([
+            // Factorial before addition
+            ("3! + 2", 8.0),        // 6 + 2, not (3+2)!
+            ("2 + 3!", 8.0),        // 2 + 6, not (2+3)!
+            // Factorial before multiplication
+            ("3! * 2", 12.0),       // 6 * 2
+            ("2 * 3!", 12.0),       // 2 * 6
+            // Factorial before subtraction
+            ("3! - 2", 4.0),        // 6 - 2
+            ("10 - 3!", 4.0),       // 10 - 6
+            // Factorial before division
+            ("3! / 2", 3.0),        // 6 / 2
+            ("12 / 3!", 2.0),       // 12 / 6
+            // Factorial with power
+            ("2 ^ 3!", 64.0),       // 2 ^ 6
+            ("3! ^ 2", 36.0),       // 6 ^ 2
+            // Multiple factorials
+            ("2! + 3! + 4!", 32.0), // 2 + 6 + 24
+            ("2! * 3! * 4!", 288.0), // 2 * 6 * 24
         ]);
 
         for (input, expected) in cases {

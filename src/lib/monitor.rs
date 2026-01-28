@@ -57,6 +57,7 @@ impl Monitor for TokenType {
             TokenType::DIVIDE => "DIVIDE",
             TokenType::PERCENTAGE => "PERCENTAGE",
             TokenType::POWER => "POWER",
+            TokenType::FACTORIAL => "FACTORIAL",
             TokenType::LABS => "LEFT-ABS",
             TokenType::RABS => "RIGHT-ABS",
             TokenType::SQRT => "SQRT",

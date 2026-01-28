@@ -307,8 +307,8 @@ impl<'a> Lexer<'a> {
     // then continue with the other ones.
     // So, we have to convert the multiplication and division
     // parts of main expression into the sub expressions.
-    // Combines function tokens with their arguments into single sub-expression tokens.
-    // This ensures that function calls like sqrt(16) are treated as atomic units
+    // Combines function tokens with their arguments and factorial operators into single sub-expression tokens.
+    // This ensures that function calls like sqrt(16) and factorials like 5! are treated as atomic units
     // and won't be broken up by operator precedence logic.
     fn combine_function_calls(tokens: Vec<Token>) -> Vec<Token> {
         let mut result: Vec<Token> = Vec::new();
@@ -317,6 +317,7 @@ impl<'a> Lexer<'a> {
         while i < tokens.len() {
             let current = &tokens[i];
 
+            // Handle prefix functions: sqrt(16), sin(x), etc.
             if current.is_function() && i + 1 < tokens.len() {
                 let arg = &tokens[i + 1];
                 // Combine function and its argument into a sub-expression
@@ -326,6 +327,19 @@ impl<'a> Lexer<'a> {
                 );
                 result.push(func_call);
                 i += 2; // Skip both function and argument
+            }
+            // Handle postfix factorial: 5!, (2+3)!
+            else if (current.is_number() || current.is_sub_exp())
+                && i + 1 < tokens.len()
+                && tokens[i + 1].is_factorial()
+            {
+                // Combine number/subexp and factorial into a sub-expression
+                let factorial_expr = Token::new_sub(
+                    vec![current.clone(), tokens[i + 1].clone()],
+                    SubMethod::PAREN,
+                );
+                result.push(factorial_expr);
+                i += 2; // Skip both operand and factorial
             } else {
                 result.push(current.clone());
                 i += 1;
@@ -703,10 +717,9 @@ impl<'a> Lexer<'a> {
                 if v != ' ' {
                     let is_paren: (bool, bool) = v.to_string().is_parentheses();
                     let is_abs: (bool, bool) = v.to_string().is_abs();
+                    let is_factorial = v == '!';
 
-                    // println!("{}, abs:{:?}, paren:{:?}", v, is_abs, is_paren);
-
-                    return !is_paren.1 && !is_abs.1 && !v.to_string().is_number();
+                    return !is_paren.1 && !is_abs.1 && !is_factorial && !v.to_string().is_number();
                 }
 
                 self.is_free_from_number(step + 1)

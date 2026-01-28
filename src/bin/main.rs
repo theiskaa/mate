@@ -142,6 +142,7 @@ fn print_help() {
     println!("    /    Division");
     println!("    %    Percentage (e.g., 50 % 10 = 5)");
     println!("    ^    Power (e.g., 2 ^ 3 = 8)");
+    println!("    !    Factorial (e.g., 5! = 120)");
     println!("    ()   Parentheses for grouping");
     println!("    []   Absolute value (e.g., [-5] = 5)\n");
     println!("MATH FUNCTIONS:");
@@ -170,6 +171,7 @@ fn print_repl_help() {
     println!("  /    Division");
     println!("  %    Percentage (e.g., 50 % 10 = 5)");
     println!("  ^    Power (e.g., 2 ^ 3 = 8)");
+    println!("  !    Factorial (e.g., 5! = 120)");
     println!("  ()   Parentheses for grouping");
     println!("  []   Absolute value (e.g., [-5] = 5)\n");
     println!("{}", "Math functions:".bold());

@@ -67,6 +67,7 @@ pub enum TokenType {
     DIVIDE,
     PERCENTAGE,
     POWER,
+    FACTORIAL,
 
     // Math functions
     SQRT,
@@ -154,6 +155,7 @@ impl Token {
                 ")" => TokenType::RPAREN,
                 "%" => TokenType::PERCENTAGE,
                 "^" => TokenType::POWER,
+                "!" => TokenType::FACTORIAL,
                 "[" => TokenType::LABS,
                 "]" => TokenType::RABS,
                 "sqrt" => TokenType::SQRT,
@@ -222,6 +224,10 @@ impl Token {
         matches!(self.typ, TokenType::ILLEGAL)
     }
 
+    pub fn is_number(&self) -> bool {
+        matches!(self.typ, TokenType::NUMBER)
+    }
+
     pub fn is_lparen(&self) -> bool {
         matches!(self.typ, TokenType::LPAREN)
     }
@@ -248,6 +254,10 @@ impl Token {
 
     pub fn is_rabs(&self) -> bool {
         matches!(self.typ, TokenType::RABS)
+    }
+
+    pub fn is_factorial(&self) -> bool {
+        matches!(self.typ, TokenType::FACTORIAL)
     }
 
     pub fn is_function(&self) -> bool {
