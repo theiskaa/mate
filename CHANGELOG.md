@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.1
+
+Added factorial operator support.
+
+- Implemented factorial operator: `5!` returns `120`, `(2+3)!` returns `120`
+- Factorial works in expressions: `5! + 10`, `2 * 5!`, `sqrt(5!)`
+- Supports nested factorials: `(3!)!` returns `720`
+- Proper error handling for negative numbers, non-integers, and overflow
+
+- **Issue:** [#24](https://github.com/theiskaa/mate/issues/24)
+
+---
+
 ## v0.2.0
 
 Major update with math functions, improved error handling, and project restructure.

@@ -33,7 +33,7 @@ cargo add mate-rs
 Or add to your Cargo.toml:
 
 ```toml
-mate-rs = "0.2.0"
+mate-rs = "0.2.1"
 ```
 
 ## Usage
@@ -94,6 +94,7 @@ let result = Calculator::calculate(tokens, input);
 | `/` | Division | `10 / 2` |
 | `%` | Percentage | `50 % 10` (10% of 50 = 5) |
 | `^` | Power | `2 ^ 3` (= 8) |
+| `!` | Factorial | `5!` (= 120) |
 | `()` | Parentheses | `(2 + 3) * 4` |
 | `[]` | Absolute value | `[-5]` (= 5) |
 
