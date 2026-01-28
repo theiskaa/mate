@@ -10,4 +10,13 @@ repository = "https://github.com/theiskaa/mate"
 license-file = "LICENSE"
 keywords = ["interpreter", "parser", "calculator"]
 
+[lib]
+name = "mate_rs"
+path = "src/lib/lib.rs"
+
+[[bin]]
+name = "mate"
+path = "src/bin/main.rs"
+
 [dependencies]
+colored = "2.0.0"
