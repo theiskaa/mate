@@ -21,8 +21,7 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    // Creates a new Lexer object with given input.
-    fn new(input: &'a str) -> Result<Lexer, Error> {
+    fn new(input: &'a str) -> Result<Lexer<'a>, Error> {
         if input.len() < 1 {
             return Err(Error::empty_input());
         }
@@ -94,9 +93,9 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        match Lexer::nest_parentheses(tokens) {
+        match Lexer::nest_parentheses(tokens, input) {
             Err(e) => return Err(e),
-            Ok(v) => match Lexer::break_nesting(0, v) {
+            Ok(v) => match Lexer::break_nesting(0, v, input) {
                 Err(e) => return Err(e),
                 Ok(v) => return Ok(Lexer::combine_tokens(v)),
             },
@@ -117,7 +116,10 @@ impl<'a> Lexer<'a> {
     //
     // By storing tokens by their nesting levels, makes it easy to understand and implement
     // any kind of parentheses expressions as sub-expressions.
-    fn nest_parentheses(tokens: Vec<Token>) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error> {
+    fn nest_parentheses(
+        tokens: Vec<Token>,
+        input: &str,
+    ) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error> {
         let mut nested: HashMap<usize, (Vec<Token>, bool)> = HashMap::new();
 
         let mut level: usize = 0;
@@ -128,7 +130,7 @@ impl<'a> Lexer<'a> {
             let t: Token = tokens[i].clone();
 
             if t.is_lparen() || t.is_labs() {
-                startert = t.clone(); // update starter-type.
+                startert = t.clone();
 
                 let mut base: (Vec<Token>, bool) = match nested.get(&0) {
                     None => (vec![], false),
@@ -142,7 +144,12 @@ impl<'a> Lexer<'a> {
                 nested.insert(0, base.clone());
 
                 match Lexer::take_till_end(tokens.clone(), i) {
-                    None => return Err(Error::new(String::from("TODO: find a appropriate error"))),
+                    None => {
+                        return Err(Error::mismatched_parentheses(
+                            input.to_string(),
+                            t.index.1 + 1,
+                        ))
+                    }
                     Some(v) => {
                         nested.insert(level, (v.0, v.2));
                         i = v.1;
@@ -152,9 +159,14 @@ impl<'a> Lexer<'a> {
                 continue;
             } else if t.is_rparen() || t.is_rabs() {
                 if startert.clone().matchto(t.clone()) {
+                    startert = Token::empty();
                     i += 1;
+                    continue;
                 }
-                continue;
+                return Err(Error::mismatched_parentheses(
+                    input.to_string(),
+                    t.index.1 + 1,
+                ));
             }
 
             let mut base: (Vec<Token>, bool) = match nested.get(&0) {
@@ -205,9 +217,16 @@ impl<'a> Lexer<'a> {
             }
 
             if t.is_rparen() || t.is_rabs() {
-                if matcho_collection.last().unwrap().matchto(t) {
-                    level -= 1;
-                    matcho_collection.pop();
+                match matcho_collection.last() {
+                    None => return None,
+                    Some(last) => {
+                        if last.matchto(t) {
+                            level -= 1;
+                            matcho_collection.pop();
+                        } else {
+                            return None;
+                        }
+                    }
                 }
 
                 if level == 0 {
@@ -216,6 +235,10 @@ impl<'a> Lexer<'a> {
             }
 
             collected.push(tokens[i].clone());
+        }
+
+        if level != 0 {
+            return None;
         }
 
         Some((collected, iteration_count, has_to_recall))
@@ -229,6 +252,7 @@ impl<'a> Lexer<'a> {
     fn break_nesting(
         point: usize,
         nested: HashMap<usize, (Vec<Token>, bool)>,
+        input: &str,
     ) -> Result<Vec<Token>, Error> {
         let mut result: Vec<Token> = Vec::new();
 
@@ -250,11 +274,9 @@ impl<'a> Lexer<'a> {
                                 continue;
                             }
 
-                            // If the tokens at current point in the [nested], contains parentheses
-                            // that means we have to re-nest and re break them as tokens recursively..
-                            match Lexer::nest_parentheses(v.0.clone()) {
+                            match Lexer::nest_parentheses(v.0.clone(), input) {
                                 Err(e) => return Err(e),
-                                Ok(v) => match Lexer::break_nesting(0, v) {
+                                Ok(v) => match Lexer::break_nesting(0, v, input) {
                                     Err(e) => return Err(e),
                                     Ok(v) => {
                                         let combined: Sub = Lexer::combine_tokens(v);
@@ -337,7 +359,7 @@ impl<'a> Lexer<'a> {
             }
 
             let current_is_combinable = current.is_div_or_prod() || current.is_percentage();
-            let next_is_combinable = next.is_div_or_prod() || current.is_percentage();
+            let next_is_combinable = next.is_div_or_prod() || next.is_percentage();
             let is_sub = sub_tokens.len() > 0
                 && (current.is_number() || current.is_sub_exp() || current_is_combinable);
 
@@ -1063,5 +1085,53 @@ mod test {
         }
     }
 
-    // TODO: should add tests for private functions also.
+    #[test]
+    fn mismatched_parentheses() {
+        let test_cases: Vec<&str> = vec![
+            "( ]",
+            "[ )",
+            "(5 + 3]",
+            "[5 + 3)",
+            "((5 + 3)",
+            "(5 + 3))",
+            "[[5 + 3]",
+            "[5 + 3]]",
+            "(5 + [3)",
+            "[5 + (3]",
+            "5 + (3 * [2)]",
+        ];
+
+        for input in test_cases {
+            let result = Lexer::lex(input);
+            assert!(
+                result.is_err(),
+                "Expected error for mismatched parentheses in: {}",
+                input
+            );
+        }
+    }
+
+    #[test]
+    fn valid_parentheses() {
+        let test_cases: Vec<&str> = vec![
+            "(5 + 3)",
+            "[5 + 3]",
+            "((5 + 3))",
+            "[[5 + 3]]",
+            "(5 + [3])",
+            "[5 + (3)]",
+            "((5) + (3))",
+            "5 + (3 * [2 + 1])",
+        ];
+
+        for input in test_cases {
+            let result = Lexer::lex(input);
+            assert!(
+                result.is_ok(),
+                "Expected valid result for: {}, got error: {:?}",
+                input,
+                result
+            );
+        }
+    }
 }

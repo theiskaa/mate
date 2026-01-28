@@ -189,6 +189,32 @@ impl Error {
         Error::indexed_error(input, token.index.1 + 1, message, explanation)
     }
 
+    // A custom error for division by zero cases.
+    pub fn division_by_zero(input: String, point: i32) -> Self {
+        let message = String::from("error: division by zero\n\n");
+
+        let explanation: Vec<&str> = Vec::from([
+            "|",
+            "| > Cannot divide by zero.",
+            "| > hint: ensure the divisor is not zero.",
+        ]);
+
+        Error::indexed_error(input, point, message, explanation)
+    }
+
+    pub fn mismatched_parentheses(input: String, point: i32) -> Self {
+        let message = String::from("error: mismatched parentheses or brackets\n\n");
+
+        let explanation: Vec<&str> = Vec::from([
+            "|",
+            "| > Found a closing bracket without a matching opening bracket,",
+            "| > or brackets are mismatched (e.g., '(' closed with ']').",
+            "| > hint: ensure all brackets are properly paired.",
+        ]);
+
+        Error::indexed_error(input, point, message, explanation)
+    }
+
     pub fn to_string(&self) -> String {
         self.msg.clone()
     }

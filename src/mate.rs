@@ -14,11 +14,11 @@ impl Mate {
     // Takes a arithmetic expression as string, parses it to tokens, and calculates final result.
     // Detailed descriptions could be viewed at lexer source file and calculator source file.
     pub fn calculate(input: &str) -> Result<f64, Error> {
-        let sub = match Lexer::lex(input.clone()) {
+        let sub = match Lexer::lex(input) {
             Err(e) => return Err(e),
             Ok(v) => v,
         };
 
-        Calculator::calculate(sub, input.clone())
+        Calculator::calculate(sub, input)
     }
 }
