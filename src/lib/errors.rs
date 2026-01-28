@@ -5,6 +5,7 @@
 //
 
 use crate::token::Token;
+use std::fmt;
 
 // Main structure model for errors of lexer.
 #[derive(Clone, Debug, PartialEq)]
@@ -30,17 +31,15 @@ impl Error {
     //         | > explanation here.
     // ```
     fn indexed_error(input: String, point: i32, err: String, expl: Vec<&str>) -> Self {
-        let mut message = err.clone();
+        let mut message = err;
 
-        let tab: String = String::from("     ");
-        let mut space: String = String::from("");
-        for _ in 0..point - 1 {
-            space.push_str(" ");
-        }
+        let tab = "     ";
+        let space_count = if point > 1 { (point - 1) as usize } else { 0 };
+        let space: String = " ".repeat(space_count);
 
-        message.push_str(format!("{}\"{}\" \n", tab.clone(), input.trim_end()).as_str());
+        message.push_str(&format!("{tab}\"{}\" \n", input.trim_end()));
         for exp in expl.iter() {
-            message.push_str(format!(" {}{}{}\n", tab.clone(), space.clone(), exp).as_str());
+            message.push_str(&format!(" {tab}{space}{exp}\n"));
         }
 
         Self { msg: message }
@@ -74,36 +73,20 @@ impl Error {
     // ```
     //
     pub fn missing_some_tokens(input: String, point: i32) -> Self {
-        let message = format!("error: missing some tokens to calculate result\n\n");
+        let message = "error: missing some tokens to calculate result\n\n".to_string();
 
-        let mut inpt: String = input.clone().trim_end().to_string();
-        let pointer: String = String::from(" {X} ");
+        let mut inpt: String = input.trim_end().to_string();
+        let pointer = " {X} ";
 
-        for i in 1..pointer.len() {
-            let p: i32 = point + (i as i32);
-            let pch: char = pointer.chars().nth(i - 1).unwrap();
+        for (i, pch) in pointer.chars().enumerate() {
+            let p: i32 = point + (i as i32) + 1;
 
-            // shortcut handle for the error: "attempt to subtract with overflow problem".
-            // by that app won't 'cause any number overflow issues.
-            let backid: usize = {
-                if 0 > p - 1 {
-                    0
-                } else {
-                    (p - 1) as usize
-                }
-            };
+            let backid: usize = if p < 1 { 0 } else { (p - 1) as usize };
 
-            let back_ch: char = match inpt.chars().nth(backid) {
-                Some(v) => v,
-                None => '0',
-            };
+            let back_ch = inpt.chars().nth(backid).unwrap_or('0');
+            let next_ch = inpt.chars().nth((p + 1) as usize).unwrap_or('0');
 
-            let next_ch: char = match inpt.chars().nth((p + 1) as usize) {
-                Some(v) => v,
-                None => '0',
-            };
-
-            if back_ch == ' ' && pch == ' ' || next_ch == ' ' && pch == ' ' {
+            if (back_ch == ' ' || next_ch == ' ') && pch == ' ' {
                 continue;
             }
 
@@ -134,7 +117,7 @@ impl Error {
     pub fn cannot_parse_to_number(input: String, token: Token) -> Self {
         let message = format!(
             "error: cannot parse token literal: `{}` to a number\n\n",
-            token.clone().literal.clone()
+            token.literal
         );
 
         // A split list of error explanation.
@@ -152,29 +135,16 @@ impl Error {
         let space = "      ";
         let mut msg = String::from("error: invalid order of token characters\n");
 
-        msg.push_str(format!("{}A valid token/character order is:", space).as_str());
-        msg.push_str(format!("{}[Numerable], [Operation], [Numerable]", space).as_str());
+        msg.push_str(&format!("{space}A valid token/character order is:"));
+        msg.push_str(&format!("{space}[Numerable], [Operation], [Numerable]"));
 
         Self { msg }
     }
 
-    // A custom [indexed_error] implementation for illegal token error.
-    // Looks like:
-    //
-    // ```
-    // error: found an illegal character `<token-literal>`
-    //
-    //      "<your input here>"
-    //         |
-    //         | > We do not know how to parse this character
-    //         | > If you think this is a bug or a practical feature
-    //         | > that we do not have yet, please open an issue:
-    //         | >   -> https://github.com/theiskaa/mate/issues/new
-    // ```
-    pub fn illeagal_token(input: String, token: Token) -> Self {
+    pub fn illegal_token(input: String, token: Token) -> Self {
         let message = format!(
             "error: found an illegal character: `{}` \n\n",
-            token.clone().literal
+            token.literal
         );
 
         // A split list of error explanation.
@@ -189,8 +159,36 @@ impl Error {
         Error::indexed_error(input, token.index.1 + 1, message, explanation)
     }
 
-    pub fn to_string(&self) -> String {
-        self.msg.clone()
+    // A custom error for division by zero cases.
+    pub fn division_by_zero(input: String, point: i32) -> Self {
+        let message = String::from("error: division by zero\n\n");
+
+        let explanation: Vec<&str> = Vec::from([
+            "|",
+            "| > Cannot divide by zero.",
+            "| > hint: ensure the divisor is not zero.",
+        ]);
+
+        Error::indexed_error(input, point, message, explanation)
+    }
+
+    pub fn mismatched_parentheses(input: String, point: i32) -> Self {
+        let message = String::from("error: mismatched parentheses or brackets\n\n");
+
+        let explanation: Vec<&str> = Vec::from([
+            "|",
+            "| > Found a closing bracket without a matching opening bracket,",
+            "| > or brackets are mismatched (e.g., '(' closed with ']').",
+            "| > hint: ensure all brackets are properly paired.",
+        ]);
+
+        Error::indexed_error(input, point, message, explanation)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.msg)
     }
 }
 
@@ -223,8 +221,8 @@ mod tests {
     }
 
     #[test]
-    fn to_string() {
+    fn display() {
         let error: Error = Error::new(String::from("A new message"));
-        assert_eq!(error.to_string(), error.msg)
+        assert_eq!(format!("{}", error), error.msg)
     }
 }

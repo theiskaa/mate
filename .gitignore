@@ -1,7 +1,6 @@
-# Added by cargo
-
+# Build artifacts
 /target/
-/repl/target/
 Cargo.lock
+
+# OS files
 .DS_Store
-target/.rustc_info.jso

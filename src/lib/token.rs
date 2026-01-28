@@ -67,6 +67,18 @@ pub enum TokenType {
     DIVIDE,
     PERCENTAGE,
     POWER,
+
+    // Math functions
+    SQRT,
+    SIN,
+    COS,
+    TAN,
+    LOG,
+    LN,
+    EXP,
+    FLOOR,
+    CEIL,
+    ROUND,
 }
 
 // The main structure of input's each parsed character.
@@ -121,7 +133,7 @@ impl Token {
     pub fn new_pointer(i: usize, method: SubMethod) -> Self {
         Self {
             typ: TokenType::POINTER,
-            literal: format!("{}", i),
+            literal: format!("{i}"),
             sub: Sub::new(Vec::new(), method),
             index: Token::unknown_index(),
         }
@@ -130,37 +142,43 @@ impl Token {
     // Create a new token model from a literal.
     // The type is decided automatically by checking it.
     pub fn from(mut literal: String, index: (i32, i32)) -> Self {
-        let typ: TokenType;
-
-        if literal.is_number() {
-            typ = TokenType::NUMBER;
+        let typ = if literal.is_number() {
+            TokenType::NUMBER
         } else {
-            typ = match literal.trim() {
+            match literal.trim().to_lowercase().as_str() {
                 "+" => TokenType::PLUS,
                 "-" => TokenType::MINUS,
-                "*" => TokenType::PRODUCT,
-                "•" => TokenType::PRODUCT,
-                "/" => TokenType::DIVIDE,
-                ":" => TokenType::DIVIDE,
+                "*" | "•" => TokenType::PRODUCT,
+                "/" | ":" => TokenType::DIVIDE,
                 "(" => TokenType::LPAREN,
                 ")" => TokenType::RPAREN,
                 "%" => TokenType::PERCENTAGE,
                 "^" => TokenType::POWER,
                 "[" => TokenType::LABS,
                 "]" => TokenType::RABS,
+                "sqrt" => TokenType::SQRT,
+                "sin" => TokenType::SIN,
+                "cos" => TokenType::COS,
+                "tan" => TokenType::TAN,
+                "log" => TokenType::LOG,
+                "ln" => TokenType::LN,
+                "exp" => TokenType::EXP,
+                "floor" => TokenType::FLOOR,
+                "ceil" => TokenType::CEIL,
+                "round" => TokenType::ROUND,
                 _ => TokenType::ILLEGAL,
             }
-        }
+        };
 
         // Clear the white-spaces from literal.
         literal.retain(|c| !c.is_whitespace());
 
-        return Self {
+        Self {
             typ,
             literal,
             sub: Sub::empty(),
             index,
-        };
+        }
     }
 
     // Creates an empty Token model.
@@ -197,87 +215,68 @@ impl Token {
             return None;
         }
 
-        match self.literal.as_str().parse::<usize>() {
-            Err(_) => return None,
-            Ok(v) => return Some(v),
-        };
+        self.literal.as_str().parse::<usize>().ok()
     }
 
-    // Checks if pointed token's type is illegal or not.
     pub fn is_illegal(&self) -> bool {
-        match self.typ {
-            TokenType::ILLEGAL => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::ILLEGAL)
     }
 
-    // Checks if pointed token's type is left-parentheses or not.
     pub fn is_lparen(&self) -> bool {
-        match self.typ {
-            TokenType::LPAREN => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::LPAREN)
     }
 
-    // Checks if pointed token's type is right-parentheses or not.
     pub fn is_rparen(&self) -> bool {
-        match self.typ {
-            TokenType::RPAREN => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::RPAREN)
     }
 
-    // Checks if pointed token's type is pointer or not.
     pub fn is_pointer(&self) -> bool {
-        match self.typ {
-            TokenType::POINTER => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::POINTER)
     }
 
-    // Checks if pointed token's type is sub-expression or not.
     pub fn is_sub_exp(&self) -> bool {
-        match self.typ {
-            TokenType::SUBEXP => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::SUBEXP)
     }
 
-    // Checks if pointed token's type is POWER or not.
     pub fn is_power(&self) -> bool {
-        match self.typ {
-            TokenType::POWER => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::POWER)
     }
 
-    // Checks if pointed token's type is LABS or not.
     pub fn is_labs(&self) -> bool {
-        match self.typ {
-            TokenType::LABS => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::LABS)
     }
 
-    // Checks if pointed token's type is RABS or not.
     pub fn is_rabs(&self) -> bool {
-        match self.typ {
-            TokenType::RABS => true,
-            _ => false,
-        }
+        matches!(self.typ, TokenType::RABS)
+    }
+
+    pub fn is_function(&self) -> bool {
+        matches!(
+            self.typ,
+            TokenType::SQRT
+                | TokenType::SIN
+                | TokenType::COS
+                | TokenType::TAN
+                | TokenType::LOG
+                | TokenType::LN
+                | TokenType::EXP
+                | TokenType::FLOOR
+                | TokenType::CEIL
+                | TokenType::ROUND
+        )
     }
 
     // Checks the "parentheses" family tokens' matching to each other.
     // So, if pointed(self) token is left-parentheses
     // given token(t) should be right-parentheses, if not returns false.
-    pub fn matchto(&self, t: Token) -> bool {
+    pub fn matchto(&self, t: &Token) -> bool {
         let m = match self.typ {
             TokenType::LPAREN => TokenType::RPAREN,
             TokenType::LABS => TokenType::RABS,
             _ => TokenType::ILLEGAL,
         };
 
-        return m == t.typ;
+        m == t.typ
     }
 }
 
@@ -664,7 +663,7 @@ mod tests {
         ]);
 
         for (expected, tokens) in test_data {
-            assert_eq!(expected, tokens.0.matchto(tokens.1));
+            assert_eq!(expected, tokens.0.matchto(&tokens.1));
         }
     }
 }

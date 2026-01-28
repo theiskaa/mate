@@ -20,11 +20,11 @@ impl Monitor for Token {
 
         let nest: usize = n;
         if self.typ != TokenType::SUBEXP {
-            lit = format!("({})", self.literal.to_string());
+            lit = format!("({})", self.literal);
         } else {
             lit = String::new();
             for t in self.sub.tokens.iter().map(|t| t.to_string(nest + 1)) {
-                lit.push_str(format!("\n{}", t).as_str())
+                lit.push_str(format!("\n{t}").as_str())
             }
         }
 
@@ -59,6 +59,16 @@ impl Monitor for TokenType {
             TokenType::POWER => "POWER",
             TokenType::LABS => "LEFT-ABS",
             TokenType::RABS => "RIGHT-ABS",
+            TokenType::SQRT => "SQRT",
+            TokenType::SIN => "SIN",
+            TokenType::COS => "COS",
+            TokenType::TAN => "TAN",
+            TokenType::LOG => "LOG",
+            TokenType::LN => "LN",
+            TokenType::EXP => "EXP",
+            TokenType::FLOOR => "FLOOR",
+            TokenType::CEIL => "CEIL",
+            TokenType::ROUND => "ROUND",
         };
 
         String::from(data)

@@ -10,7 +10,6 @@ use crate::{
     utils::ChUtils,
 };
 use std::{cell::Cell, collections::HashMap};
-use substring::Substring;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Lexer<'a> {
@@ -21,15 +20,16 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    // Creates a new Lexer object with given input.
-    fn new(input: &'a str) -> Result<Lexer, Error> {
-        if input.len() < 1 {
+    fn new(input: &'a str) -> Result<Lexer<'a>, Error> {
+        if input.is_empty() {
             return Err(Error::empty_input());
         }
 
+        let first_char = input.chars().next().ok_or_else(Error::empty_input)?;
+
         Ok(Self {
             input,
-            examination_char: Cell::new(input.chars().nth(0).unwrap()),
+            examination_char: Cell::new(first_char),
             position: Cell::from(0),
             read_position: Cell::from(1),
         })
@@ -78,10 +78,7 @@ impl<'a> Lexer<'a> {
     //  ╰───────────────────────────────────╯
     //
     pub fn lex(input: &'a str) -> Result<Sub, Error> {
-        let lexer: Lexer = match Lexer::new(input) {
-            Ok(l) => l,
-            Err(e) => return Err(e),
-        };
+        let lexer: Lexer = Lexer::new(input)?;
 
         let mut tokens: Vec<Token> = Vec::new();
         loop {
@@ -94,11 +91,11 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        match Lexer::nest_parentheses(tokens) {
-            Err(e) => return Err(e),
-            Ok(v) => match Lexer::break_nesting(0, v) {
-                Err(e) => return Err(e),
-                Ok(v) => return Ok(Lexer::combine_tokens(v)),
+        match Lexer::nest_parentheses(tokens, input) {
+            Err(e) => Err(e),
+            Ok(v) => match Lexer::break_nesting(0, v, input) {
+                Err(e) => Err(e),
+                Ok(v) => Ok(Lexer::combine_tokens(v)),
             },
         }
     }
@@ -117,7 +114,10 @@ impl<'a> Lexer<'a> {
     //
     // By storing tokens by their nesting levels, makes it easy to understand and implement
     // any kind of parentheses expressions as sub-expressions.
-    fn nest_parentheses(tokens: Vec<Token>) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error> {
+    fn nest_parentheses(
+        tokens: Vec<Token>,
+        input: &str,
+    ) -> Result<HashMap<usize, (Vec<Token>, bool)>, Error> {
         let mut nested: HashMap<usize, (Vec<Token>, bool)> = HashMap::new();
 
         let mut level: usize = 0;
@@ -128,7 +128,7 @@ impl<'a> Lexer<'a> {
             let t: Token = tokens[i].clone();
 
             if t.is_lparen() || t.is_labs() {
-                startert = t.clone(); // update starter-type.
+                startert = t.clone();
 
                 let mut base: (Vec<Token>, bool) = match nested.get(&0) {
                     None => (vec![], false),
@@ -142,7 +142,12 @@ impl<'a> Lexer<'a> {
                 nested.insert(0, base.clone());
 
                 match Lexer::take_till_end(tokens.clone(), i) {
-                    None => return Err(Error::new(String::from("TODO: find a appropriate error"))),
+                    None => {
+                        return Err(Error::mismatched_parentheses(
+                            input.to_string(),
+                            t.index.1 + 1,
+                        ))
+                    }
                     Some(v) => {
                         nested.insert(level, (v.0, v.2));
                         i = v.1;
@@ -151,10 +156,15 @@ impl<'a> Lexer<'a> {
 
                 continue;
             } else if t.is_rparen() || t.is_rabs() {
-                if startert.clone().matchto(t.clone()) {
+                if startert.matchto(&t) {
+                    startert = Token::empty();
                     i += 1;
+                    continue;
                 }
-                continue;
+                return Err(Error::mismatched_parentheses(
+                    input.to_string(),
+                    t.index.1 + 1,
+                ));
             }
 
             let mut base: (Vec<Token>, bool) = match nested.get(&0) {
@@ -167,7 +177,7 @@ impl<'a> Lexer<'a> {
             i += 1;
         }
 
-        return Ok(nested);
+        Ok(nested)
     }
 
     // Collects all tokens from exact one parentheses-expression-clip.
@@ -179,9 +189,12 @@ impl<'a> Lexer<'a> {
 
         let mut level: i32 = 1;
 
-        // [start] indexed value should always equal to an any kind of opening parentheses
-        let start_token = tokens.clone()[start].clone();
-        if !start_token.is_lparen() && !start_token.is_labs() || start > tokens.clone().len() {
+        if start >= tokens.len() {
+            return None;
+        }
+
+        let start_token = tokens[start].clone();
+        if !start_token.is_lparen() && !start_token.is_labs() {
             return None;
         }
 
@@ -193,8 +206,8 @@ impl<'a> Lexer<'a> {
         let mut matcho_collection: Vec<Token> = vec![start_token.clone()];
 
         let mut collected: Vec<Token> = Vec::new();
-        for i in (start + 1)..tokens.len() {
-            let t = tokens[i].clone();
+        for t in tokens.iter().skip(start + 1) {
+            let t = t.clone();
 
             iteration_count += 1;
 
@@ -205,9 +218,16 @@ impl<'a> Lexer<'a> {
             }
 
             if t.is_rparen() || t.is_rabs() {
-                if matcho_collection.last().unwrap().matchto(t) {
-                    level -= 1;
-                    matcho_collection.pop();
+                match matcho_collection.last() {
+                    None => return None,
+                    Some(last) => {
+                        if last.matchto(&t) {
+                            level -= 1;
+                            matcho_collection.pop();
+                        } else {
+                            return None;
+                        }
+                    }
                 }
 
                 if level == 0 {
@@ -215,7 +235,11 @@ impl<'a> Lexer<'a> {
                 }
             }
 
-            collected.push(tokens[i].clone());
+            collected.push(t);
+        }
+
+        if level != 0 {
+            return None;
         }
 
         Some((collected, iteration_count, has_to_recall))
@@ -229,6 +253,7 @@ impl<'a> Lexer<'a> {
     fn break_nesting(
         point: usize,
         nested: HashMap<usize, (Vec<Token>, bool)>,
+        input: &str,
     ) -> Result<Vec<Token>, Error> {
         let mut result: Vec<Token> = Vec::new();
 
@@ -250,11 +275,9 @@ impl<'a> Lexer<'a> {
                                 continue;
                             }
 
-                            // If the tokens at current point in the [nested], contains parentheses
-                            // that means we have to re-nest and re break them as tokens recursively..
-                            match Lexer::nest_parentheses(v.0.clone()) {
+                            match Lexer::nest_parentheses(v.0.clone(), input) {
                                 Err(e) => return Err(e),
-                                Ok(v) => match Lexer::break_nesting(0, v) {
+                                Ok(v) => match Lexer::break_nesting(0, v, input) {
                                     Err(e) => return Err(e),
                                     Ok(v) => {
                                         let combined: Sub = Lexer::combine_tokens(v);
@@ -284,20 +307,49 @@ impl<'a> Lexer<'a> {
     // then continue with the other ones.
     // So, we have to convert the multiplication and division
     // parts of main expression into the sub expressions.
+    // Combines function tokens with their arguments into single sub-expression tokens.
+    // This ensures that function calls like sqrt(16) are treated as atomic units
+    // and won't be broken up by operator precedence logic.
+    fn combine_function_calls(tokens: Vec<Token>) -> Vec<Token> {
+        let mut result: Vec<Token> = Vec::new();
+        let mut i = 0;
+
+        while i < tokens.len() {
+            let current = &tokens[i];
+
+            if current.is_function() && i + 1 < tokens.len() {
+                let arg = &tokens[i + 1];
+                // Combine function and its argument into a sub-expression
+                let func_call = Token::new_sub(
+                    vec![current.clone(), arg.clone()],
+                    SubMethod::PAREN,
+                );
+                result.push(func_call);
+                i += 2; // Skip both function and argument
+            } else {
+                result.push(current.clone());
+                i += 1;
+            }
+        }
+
+        result
+    }
+
     fn combine_tokens(tokens: Vec<Token>) -> Sub {
+        // First pass: combine function tokens with their arguments
+        let tokens = Lexer::combine_function_calls(tokens);
+
         let mut combined_tokens: Vec<Token> = Vec::new();
         let mut sub_tokens: Vec<Token> = Vec::new();
         let mut power_subs: Vec<Token> = Vec::new();
 
-        // Combine products/divisions/parentheses as sub-expression.
         for i in 0..tokens.len() {
-            let next: Token;
-            let current: Token = tokens[i].clone();
-            if i < tokens.len() - 1 {
-                next = tokens[i + 1].clone();
+            let current = tokens[i].clone();
+            let next = if i < tokens.len() - 1 {
+                tokens[i + 1].clone()
             } else {
-                next = Token::from(String::new(), Token::unknown_index());
-            }
+                Token::from(String::new(), Token::unknown_index())
+            };
 
             let is_auto_solids = current.is_number() && next.is_number()
                 || current.is_sub_exp() && next.is_sub_exp();
@@ -320,9 +372,9 @@ impl<'a> Lexer<'a> {
 
             // Collect power subs in different array to create a different sub expression with them.
             // By doing that we gonna easily keep operation priority safe.
-            let is_power_sub = power_subs.len() > 0
-                && (current.is_number() || current.is_sub_exp() || current.is_power());
-            if is_power_sub || next.is_power() && (current.is_number() || current.is_sub_exp()) {
+            let is_power_sub = !power_subs.is_empty()
+                && (current.is_number() || current.is_sub_exp() || current.is_power() || current.is_function());
+            if is_power_sub || next.is_power() && (current.is_number() || current.is_sub_exp() || current.is_function()) {
                 power_subs.push(current.clone());
                 continue;
             }
@@ -337,12 +389,12 @@ impl<'a> Lexer<'a> {
             }
 
             let current_is_combinable = current.is_div_or_prod() || current.is_percentage();
-            let next_is_combinable = next.is_div_or_prod() || current.is_percentage();
-            let is_sub = sub_tokens.len() > 0
-                && (current.is_number() || current.is_sub_exp() || current_is_combinable);
+            let next_is_combinable = next.is_div_or_prod() || next.is_percentage();
+            let is_sub = !sub_tokens.is_empty()
+                && (current.is_number() || current.is_sub_exp() || current_is_combinable || current.is_function());
 
             // Checks matching of new or exiting sub-token.
-            if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp()) {
+            if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp() || current.is_function()) {
                 if !power_subs.is_empty() {
                     sub_tokens.push(Token::new_sub(
                         Lexer::combine_powers(power_subs.clone(), power_subs.len() - 1),
@@ -395,7 +447,7 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        return Sub::new(combined_tokens, SubMethod::PAREN);
+        Sub::new(combined_tokens, SubMethod::PAREN)
     }
 
     // Combines 1D sub expression power tokens to actual nested-power sub-expression vector.
@@ -417,12 +469,12 @@ impl<'a> Lexer<'a> {
 
         let mut combined_tokens: Vec<Token> = Vec::new();
 
-        let end = start.clone() as i32 - 2;
+        let end = start as i32 - 2;
         if end < 0 {
             return combined_tokens;
         }
 
-        let cpart: Vec<Token> = tokens.clone()[end as usize..=start.clone()].to_vec();
+        let cpart: Vec<Token> = tokens.clone()[end as usize..=start].to_vec();
         combined_tokens.append(&mut tokens.clone()[..end as usize].to_vec());
         combined_tokens.push(Token::new_sub(cpart, SubMethod::PAREN));
 
@@ -460,9 +512,7 @@ impl<'a> Lexer<'a> {
                 }
             }
 
-            if let None = self.read_char() {
-                return None;
-            };
+            self.read_char()?;
 
             return Some(Ok(Token::from(ch, (position, position))));
         }
@@ -475,10 +525,17 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        let lit: String = self.examination_char.get().to_string();
-        if let None = self.read_char() {
-            return None;
+        // Check for identifier (function name).
+        let c = self.examination_char.get();
+        if c.is_alphabetic() {
+            match self.read_identifier() {
+                None => return None,
+                Some(v) => return Some(Ok(Token::from(v.0, v.1))),
+            }
         }
+
+        let lit: String = self.examination_char.get().to_string();
+        self.read_char()?;
 
         Some(Ok(Token::from(lit, (position, position))))
     }
@@ -491,7 +548,7 @@ impl<'a> Lexer<'a> {
                 self.examination_char.set(ch);
                 self.position.set(self.read_position.get());
                 self.read_position.set(self.read_position.get() + 1);
-                return Some(ch);
+                Some(ch)
             }
             None => {
                 if self.read_position.get() == self.input.len() {
@@ -503,7 +560,7 @@ impl<'a> Lexer<'a> {
                     return Some(ch);
                 }
 
-                return None;
+                None
             }
         }
     }
@@ -524,15 +581,10 @@ impl<'a> Lexer<'a> {
         let start: usize = self.position.get();
 
         // Include negative/positive representation signs.
-        let char_at_start: char = match self.input.chars().nth(start) {
-            Some(ch) => ch,
-            None => '+', // as default numbers are positive
-        };
+        let char_at_start: char = self.input.chars().nth(start).unwrap_or('+');
 
         if char_at_start.to_string().is_plus_or_minus() {
-            if let None = self.read_char() {
-                return None;
-            }
+            self.read_char()?;
         }
 
         // Keep reading forward chars if l.Char is number or number-point.
@@ -550,7 +602,11 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        let num = input.substring(start, self.position.get()).to_string();
+        let num: String = input
+            .chars()
+            .skip(start)
+            .take(self.position.get() - start)
+            .collect();
         let end = match num.chars().last() {
             None => self.position.get(),
             Some(v) => {
@@ -563,6 +619,40 @@ impl<'a> Lexer<'a> {
         };
 
         Some((num, (start as i32, end as i32)))
+    }
+
+    // Reads an identifier (function name) from the input.
+    // Returns the identifier string and its position range.
+    fn read_identifier(&self) -> Option<(String, (i32, i32))> {
+        let start: usize = self.position.get();
+
+        let mut ch: char = self.examination_char.get();
+        while ch.is_alphabetic() {
+            match self.read_char() {
+                Some(v) => ch = v,
+                None => {
+                    if self.read_position.get() >= self.input.len() {
+                        break;
+                    }
+                    return None;
+                }
+            }
+        }
+
+        let ident: String = self
+            .input
+            .chars()
+            .skip(start)
+            .take(self.position.get() - start)
+            .collect();
+
+        let end = if ident.is_empty() {
+            start
+        } else {
+            self.position.get() - 1
+        };
+
+        Some((ident, (start as i32, end as i32)))
     }
 
     // Eats all type of empty(white) spaces.
@@ -586,10 +676,7 @@ impl<'a> Lexer<'a> {
             return None;
         }
 
-        match self.input.chars().nth(index) {
-            Some(ch) => return Some(ch),
-            None => return None,
-        }
+        self.input.chars().nth(index)
     }
 
     // Returns the previous character by current position.
@@ -602,10 +689,7 @@ impl<'a> Lexer<'a> {
             return None;
         }
 
-        match self.input.chars().nth(bindex as usize) {
-            Some(ch) => return Some(ch),
-            None => return None,
-        }
+        self.input.chars().nth(bindex as usize)
     }
 
     // Checks if the current positioned character is free from any number.
@@ -1063,5 +1147,53 @@ mod test {
         }
     }
 
-    // TODO: should add tests for private functions also.
+    #[test]
+    fn mismatched_parentheses() {
+        let test_cases: Vec<&str> = vec![
+            "( ]",
+            "[ )",
+            "(5 + 3]",
+            "[5 + 3)",
+            "((5 + 3)",
+            "(5 + 3))",
+            "[[5 + 3]",
+            "[5 + 3]]",
+            "(5 + [3)",
+            "[5 + (3]",
+            "5 + (3 * [2)]",
+        ];
+
+        for input in test_cases {
+            let result = Lexer::lex(input);
+            assert!(
+                result.is_err(),
+                "Expected error for mismatched parentheses in: {}",
+                input
+            );
+        }
+    }
+
+    #[test]
+    fn valid_parentheses() {
+        let test_cases: Vec<&str> = vec![
+            "(5 + 3)",
+            "[5 + 3]",
+            "((5 + 3))",
+            "[[5 + 3]]",
+            "(5 + [3])",
+            "[5 + (3)]",
+            "((5) + (3))",
+            "5 + (3 * [2 + 1])",
+        ];
+
+        for input in test_cases {
+            let result = Lexer::lex(input);
+            assert!(
+                result.is_ok(),
+                "Expected valid result for: {}, got error: {:?}",
+                input,
+                result
+            );
+        }
+    }
 }
