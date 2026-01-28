@@ -25,9 +25,11 @@ impl<'a> Lexer<'a> {
             return Err(Error::empty_input());
         }
 
+        let first_char = input.chars().next().ok_or_else(Error::empty_input)?;
+
         Ok(Self {
             input,
-            examination_char: Cell::new(input.chars().nth(0).unwrap()),
+            examination_char: Cell::new(first_char),
             position: Cell::from(0),
             read_position: Cell::from(1),
         })
@@ -154,7 +156,7 @@ impl<'a> Lexer<'a> {
 
                 continue;
             } else if t.is_rparen() || t.is_rabs() {
-                if startert.clone().matchto(t.clone()) {
+                if startert.matchto(&t) {
                     startert = Token::empty();
                     i += 1;
                     continue;
@@ -219,7 +221,7 @@ impl<'a> Lexer<'a> {
                 match matcho_collection.last() {
                     None => return None,
                     Some(last) => {
-                        if last.matchto(t.clone()) {
+                        if last.matchto(&t) {
                             level -= 1;
                             matcho_collection.pop();
                         } else {

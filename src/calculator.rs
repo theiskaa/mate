@@ -43,7 +43,7 @@ impl Calculator {
         let mut i: usize = 0;
         while i <= tokens.len() {
             if i > tokens.len() - 1 {
-                let point = tokens.last().unwrap().index.1;
+                let point = tokens.last().map(|t| t.index.1).unwrap_or(0);
                 return Err(Error::missing_some_tokens(input.to_string(), point));
             }
 
@@ -89,7 +89,7 @@ impl Calculator {
         }
 
         if i > tokens.len() {
-            let point = tokens.last().unwrap().index.1;
+            let point = tokens.last().map(|t| t.index.1).unwrap_or(0);
             return Err(Error::missing_some_tokens(input.to_string(), point));
         }
 
@@ -259,6 +259,112 @@ mod tests {
             let sub = Lexer::lex(input).unwrap();
             let result = Calculator::calculate(sub, input).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
+        }
+    }
+
+    #[test]
+    fn edge_cases() {
+        let valid_cases: HashMap<&str, f64> = HashMap::from([
+            ("0", 0.0),
+            ("0.0", 0.0),
+            ("0.5", 0.5),
+            (".5", 0.5),
+            ("-0.5", -0.5),
+            ("1.5 + 2.5", 4.0),
+            ("((5))", 5.0),
+            ("(((10 + 5)))", 15.0),
+            ("[[-5]]", 5.0),
+            ("2 * -3", -6.0),
+            ("10 / -2", -5.0),
+            ("-10 / -2", 5.0),
+            ("2 ^ 10", 1024.0),
+            ("2 ^ 0", 1.0),
+            ("0 ^ 5", 0.0),
+            ("1000000 + 1000000", 2000000.0),
+            ("0.001 + 0.002", 0.003),
+            ("10 - 10", 0.0),
+            ("5 * 0", 0.0),
+            ("   5 + 5   ", 10.0),
+            ("5+5", 10.0),
+            ("(5)", 5.0),
+            ("[5]", 5.0),
+            ("[-5]", 5.0),
+        ]);
+
+        for (input, expected) in valid_cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input);
+            assert!(
+                result.is_ok(),
+                "Expected success for input: {}, got error: {:?}",
+                input,
+                result
+            );
+            let value = result.unwrap();
+            assert!(
+                (value - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                value
+            );
+        }
+    }
+
+    #[test]
+    fn error_cases() {
+        let error_cases: Vec<&str> = vec![
+            "",
+            "()",
+            "[]",
+            "(5 + 3",
+            "5 + 3)",
+            "[5 + 3",
+            "5 + 3]",
+            "( ]",
+            "[ )",
+            "((5 + 3)",
+            "5 / 0",
+            "(5 - 5) / (2 - 2)",
+        ];
+
+        for input in error_cases {
+            let result = match Lexer::lex(input) {
+                Ok(sub) => Calculator::calculate(sub, input),
+                Err(e) => Err(e),
+            };
+            assert!(
+                result.is_err(),
+                "Expected error for input: {}, got: {:?}",
+                input,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn complex_nested_expressions() {
+        let cases: HashMap<&str, f64> = HashMap::from([
+            ("((2 + 3) * (4 - 1)) / 3", 5.0),
+            ("2 * (3 + 4 * (5 - 2))", 30.0),
+            ("[5 - 10] + [3 - 8]", 10.0),
+            ("([5 - 10] + [3 - 8]) * 2", 20.0),
+            ("2 ^ (1 + 1) ^ 2", 16.0),
+            ("100 % (10 + 10)", 20.0),
+            ("(2 + 3) ^ 2", 25.0),
+            ("[-5 + 2] * [3 - 7]", 12.0),
+        ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
         }
     }
 }

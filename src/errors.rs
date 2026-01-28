@@ -34,10 +34,8 @@ impl Error {
         let mut message = err;
 
         let tab = "     ";
-        let mut space = String::new();
-        for _ in 0..point - 1 {
-            space.push(' ');
-        }
+        let space_count = if point > 1 { (point - 1) as usize } else { 0 };
+        let space: String = " ".repeat(space_count);
 
         message.push_str(&format!("{tab}\"{}\" \n", input.trim_end()));
         for exp in expl.iter() {
@@ -80,9 +78,8 @@ impl Error {
         let mut inpt: String = input.trim_end().to_string();
         let pointer = " {X} ";
 
-        for i in 1..pointer.len() {
-            let p: i32 = point + (i as i32);
-            let pch: char = pointer.chars().nth(i - 1).unwrap();
+        for (i, pch) in pointer.chars().enumerate() {
+            let p: i32 = point + (i as i32) + 1;
 
             let backid: usize = if p < 1 { 0 } else { (p - 1) as usize };
 
@@ -120,7 +117,7 @@ impl Error {
     pub fn cannot_parse_to_number(input: String, token: Token) -> Self {
         let message = format!(
             "error: cannot parse token literal: `{}` to a number\n\n",
-            token.clone().literal.clone()
+            token.literal
         );
 
         // A split list of error explanation.

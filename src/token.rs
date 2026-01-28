@@ -231,7 +231,7 @@ impl Token {
     // Checks the "parentheses" family tokens' matching to each other.
     // So, if pointed(self) token is left-parentheses
     // given token(t) should be right-parentheses, if not returns false.
-    pub fn matchto(&self, t: Token) -> bool {
+    pub fn matchto(&self, t: &Token) -> bool {
         let m = match self.typ {
             TokenType::LPAREN => TokenType::RPAREN,
             TokenType::LABS => TokenType::RABS,
@@ -625,7 +625,7 @@ mod tests {
         ]);
 
         for (expected, tokens) in test_data {
-            assert_eq!(expected, tokens.0.matchto(tokens.1));
+            assert_eq!(expected, tokens.0.matchto(&tokens.1));
         }
     }
 }
