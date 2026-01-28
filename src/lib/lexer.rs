@@ -307,7 +307,38 @@ impl<'a> Lexer<'a> {
     // then continue with the other ones.
     // So, we have to convert the multiplication and division
     // parts of main expression into the sub expressions.
+    // Combines function tokens with their arguments into single sub-expression tokens.
+    // This ensures that function calls like sqrt(16) are treated as atomic units
+    // and won't be broken up by operator precedence logic.
+    fn combine_function_calls(tokens: Vec<Token>) -> Vec<Token> {
+        let mut result: Vec<Token> = Vec::new();
+        let mut i = 0;
+
+        while i < tokens.len() {
+            let current = &tokens[i];
+
+            if current.is_function() && i + 1 < tokens.len() {
+                let arg = &tokens[i + 1];
+                // Combine function and its argument into a sub-expression
+                let func_call = Token::new_sub(
+                    vec![current.clone(), arg.clone()],
+                    SubMethod::PAREN,
+                );
+                result.push(func_call);
+                i += 2; // Skip both function and argument
+            } else {
+                result.push(current.clone());
+                i += 1;
+            }
+        }
+
+        result
+    }
+
     fn combine_tokens(tokens: Vec<Token>) -> Sub {
+        // First pass: combine function tokens with their arguments
+        let tokens = Lexer::combine_function_calls(tokens);
+
         let mut combined_tokens: Vec<Token> = Vec::new();
         let mut sub_tokens: Vec<Token> = Vec::new();
         let mut power_subs: Vec<Token> = Vec::new();
@@ -342,8 +373,8 @@ impl<'a> Lexer<'a> {
             // Collect power subs in different array to create a different sub expression with them.
             // By doing that we gonna easily keep operation priority safe.
             let is_power_sub = !power_subs.is_empty()
-                && (current.is_number() || current.is_sub_exp() || current.is_power());
-            if is_power_sub || next.is_power() && (current.is_number() || current.is_sub_exp()) {
+                && (current.is_number() || current.is_sub_exp() || current.is_power() || current.is_function());
+            if is_power_sub || next.is_power() && (current.is_number() || current.is_sub_exp() || current.is_function()) {
                 power_subs.push(current.clone());
                 continue;
             }
@@ -360,10 +391,10 @@ impl<'a> Lexer<'a> {
             let current_is_combinable = current.is_div_or_prod() || current.is_percentage();
             let next_is_combinable = next.is_div_or_prod() || next.is_percentage();
             let is_sub = !sub_tokens.is_empty()
-                && (current.is_number() || current.is_sub_exp() || current_is_combinable);
+                && (current.is_number() || current.is_sub_exp() || current_is_combinable || current.is_function());
 
             // Checks matching of new or exiting sub-token.
-            if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp()) {
+            if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp() || current.is_function()) {
                 if !power_subs.is_empty() {
                     sub_tokens.push(Token::new_sub(
                         Lexer::combine_powers(power_subs.clone(), power_subs.len() - 1),
@@ -494,6 +525,15 @@ impl<'a> Lexer<'a> {
             }
         }
 
+        // Check for identifier (function name).
+        let c = self.examination_char.get();
+        if c.is_alphabetic() {
+            match self.read_identifier() {
+                None => return None,
+                Some(v) => return Some(Ok(Token::from(v.0, v.1))),
+            }
+        }
+
         let lit: String = self.examination_char.get().to_string();
         self.read_char()?;
 
@@ -579,6 +619,40 @@ impl<'a> Lexer<'a> {
         };
 
         Some((num, (start as i32, end as i32)))
+    }
+
+    // Reads an identifier (function name) from the input.
+    // Returns the identifier string and its position range.
+    fn read_identifier(&self) -> Option<(String, (i32, i32))> {
+        let start: usize = self.position.get();
+
+        let mut ch: char = self.examination_char.get();
+        while ch.is_alphabetic() {
+            match self.read_char() {
+                Some(v) => ch = v,
+                None => {
+                    if self.read_position.get() >= self.input.len() {
+                        break;
+                    }
+                    return None;
+                }
+            }
+        }
+
+        let ident: String = self
+            .input
+            .chars()
+            .skip(start)
+            .take(self.position.get() - start)
+            .collect();
+
+        let end = if ident.is_empty() {
+            start
+        } else {
+            self.position.get() - 1
+        };
+
+        Some((ident, (start as i32, end as i32)))
     }
 
     // Eats all type of empty(white) spaces.

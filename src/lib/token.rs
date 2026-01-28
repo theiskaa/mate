@@ -67,6 +67,18 @@ pub enum TokenType {
     DIVIDE,
     PERCENTAGE,
     POWER,
+
+    // Math functions
+    SQRT,
+    SIN,
+    COS,
+    TAN,
+    LOG,
+    LN,
+    EXP,
+    FLOOR,
+    CEIL,
+    ROUND,
 }
 
 // The main structure of input's each parsed character.
@@ -133,7 +145,7 @@ impl Token {
         let typ = if literal.is_number() {
             TokenType::NUMBER
         } else {
-            match literal.trim() {
+            match literal.trim().to_lowercase().as_str() {
                 "+" => TokenType::PLUS,
                 "-" => TokenType::MINUS,
                 "*" | "•" => TokenType::PRODUCT,
@@ -144,6 +156,16 @@ impl Token {
                 "^" => TokenType::POWER,
                 "[" => TokenType::LABS,
                 "]" => TokenType::RABS,
+                "sqrt" => TokenType::SQRT,
+                "sin" => TokenType::SIN,
+                "cos" => TokenType::COS,
+                "tan" => TokenType::TAN,
+                "log" => TokenType::LOG,
+                "ln" => TokenType::LN,
+                "exp" => TokenType::EXP,
+                "floor" => TokenType::FLOOR,
+                "ceil" => TokenType::CEIL,
+                "round" => TokenType::ROUND,
                 _ => TokenType::ILLEGAL,
             }
         };
@@ -226,6 +248,22 @@ impl Token {
 
     pub fn is_rabs(&self) -> bool {
         matches!(self.typ, TokenType::RABS)
+    }
+
+    pub fn is_function(&self) -> bool {
+        matches!(
+            self.typ,
+            TokenType::SQRT
+                | TokenType::SIN
+                | TokenType::COS
+                | TokenType::TAN
+                | TokenType::LOG
+                | TokenType::LN
+                | TokenType::EXP
+                | TokenType::FLOOR
+                | TokenType::CEIL
+                | TokenType::ROUND
+        )
     }
 
     // Checks the "parentheses" family tokens' matching to each other.

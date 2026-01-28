@@ -133,6 +133,7 @@ fn print_help() {
     println!("    mate 2 + 2");
     println!("    mate \"(5 + 3) * 2\"");
     println!("    mate -t \"10 / 2\"");
+    println!("    mate \"sqrt(16) + 5\"");
     println!("    mate              # Start interactive REPL\n");
     println!("SUPPORTED OPERATIONS:");
     println!("    +    Addition");
@@ -142,7 +143,18 @@ fn print_help() {
     println!("    %    Percentage (e.g., 50 % 10 = 5)");
     println!("    ^    Power (e.g., 2 ^ 3 = 8)");
     println!("    ()   Parentheses for grouping");
-    println!("    []   Absolute value (e.g., [-5] = 5)");
+    println!("    []   Absolute value (e.g., [-5] = 5)\n");
+    println!("MATH FUNCTIONS:");
+    println!("    sqrt(x)   Square root");
+    println!("    sin(x)    Sine (radians)");
+    println!("    cos(x)    Cosine (radians)");
+    println!("    tan(x)    Tangent (radians)");
+    println!("    log(x)    Base-10 logarithm");
+    println!("    ln(x)     Natural logarithm");
+    println!("    exp(x)    Exponential (e^x)");
+    println!("    floor(x)  Round down");
+    println!("    ceil(x)   Round up");
+    println!("    round(x)  Round to nearest");
 }
 
 fn print_repl_help() {
@@ -160,10 +172,12 @@ fn print_repl_help() {
     println!("  ^    Power (e.g., 2 ^ 3 = 8)");
     println!("  ()   Parentheses for grouping");
     println!("  []   Absolute value (e.g., [-5] = 5)\n");
+    println!("{}", "Math functions:".bold());
+    println!("  sqrt, sin, cos, tan, log, ln, exp, floor, ceil, round\n");
     println!("{}", "Examples:".bold());
     println!("  2 + 2");
     println!("  (5 + 3) * 2");
-    println!("  50 % 10");
-    println!("  2 ^ 8");
+    println!("  sqrt(16) + 5");
+    println!("  sin(3.14159 / 2)");
     println!("  [-5 + 2]\n");
 }

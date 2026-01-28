@@ -59,6 +59,16 @@ impl Monitor for TokenType {
             TokenType::POWER => "POWER",
             TokenType::LABS => "LEFT-ABS",
             TokenType::RABS => "RIGHT-ABS",
+            TokenType::SQRT => "SQRT",
+            TokenType::SIN => "SIN",
+            TokenType::COS => "COS",
+            TokenType::TAN => "TAN",
+            TokenType::LOG => "LOG",
+            TokenType::LN => "LN",
+            TokenType::EXP => "EXP",
+            TokenType::FLOOR => "FLOOR",
+            TokenType::CEIL => "CEIL",
+            TokenType::ROUND => "ROUND",
         };
 
         String::from(data)
