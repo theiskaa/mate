@@ -204,8 +204,8 @@ impl<'a> Lexer<'a> {
         let mut matcho_collection: Vec<Token> = vec![start_token.clone()];
 
         let mut collected: Vec<Token> = Vec::new();
-        for i in (start + 1)..tokens.len() {
-            let t = tokens[i].clone();
+        for t in tokens.iter().skip(start + 1) {
+            let t = t.clone();
 
             iteration_count += 1;
 
@@ -219,7 +219,7 @@ impl<'a> Lexer<'a> {
                 match matcho_collection.last() {
                     None => return None,
                     Some(last) => {
-                        if last.matchto(t) {
+                        if last.matchto(t.clone()) {
                             level -= 1;
                             matcho_collection.pop();
                         } else {
@@ -233,7 +233,7 @@ impl<'a> Lexer<'a> {
                 }
             }
 
-            collected.push(tokens[i].clone());
+            collected.push(t);
         }
 
         if level != 0 {

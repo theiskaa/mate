@@ -5,6 +5,7 @@
 //
 
 use crate::token::Token;
+use std::fmt;
 
 // Main structure model for errors of lexer.
 #[derive(Clone, Debug, PartialEq)]
@@ -186,9 +187,11 @@ impl Error {
 
         Error::indexed_error(input, point, message, explanation)
     }
+}
 
-    pub fn to_string(&self) -> String {
-        self.msg.clone()
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.msg)
     }
 }
 
@@ -221,8 +224,8 @@ mod tests {
     }
 
     #[test]
-    fn to_string() {
+    fn display() {
         let error: Error = Error::new(String::from("A new message"));
-        assert_eq!(error.to_string(), error.msg)
+        assert_eq!(format!("{}", error), error.msg)
     }
 }
