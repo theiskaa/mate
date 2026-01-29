@@ -9,7 +9,7 @@ expression's result directly without dealing with parsing and calculating manual
 This crate is on [crates.io](http://crates.io/crates/mate-rs) and can be used by adding mate-rs to your dependencies in your project's `Cargo.toml`.
 ```toml
 [dependencies]
-mate-rs = "0.1.4"
+mate-rs = "0.3.0"
 ```
 
 # Example: with `Mate`
@@ -99,6 +99,7 @@ match result {
 */
 
 pub mod calculator;
+pub mod environment;
 pub mod errors;
 pub mod lexer;
 pub mod mate;

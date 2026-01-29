@@ -58,7 +58,42 @@ pub trait ChUtils {
 
 impl ChUtils for String {
     fn is_number(&self) -> bool {
-        self.chars().any(|c| c.is_ascii_digit())
+        let trimmed = self.trim();
+        if trimmed.is_empty() {
+            return false;
+        }
+        // Check if string can be parsed as a number
+        // Allow optional leading +/- sign, followed by digits, optional decimal point, more digits
+        let mut chars = trimmed.chars().peekable();
+
+        // Skip optional leading sign
+        if let Some(&c) = chars.peek() {
+            if c == '+' || c == '-' {
+                chars.next();
+            }
+        }
+
+        // Must have at least one digit
+        let mut has_digit = false;
+        let mut has_decimal = false;
+
+        for c in chars {
+            if c.is_ascii_digit() {
+                has_digit = true;
+            } else if c == '.' || c == ',' {
+                if has_decimal {
+                    return false; // Multiple decimal points
+                }
+                has_decimal = true;
+            } else if c == ' ' {
+                // Allow spaces within numbers (e.g., "1 000")
+                continue;
+            } else {
+                return false; // Non-numeric character
+            }
+        }
+
+        has_digit
     }
 
     fn is_point(&self) -> bool {

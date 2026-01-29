@@ -51,6 +51,8 @@ pub enum TokenType {
 
     // Internal
     NUMBER,
+    IDENTIFIER,
+    ASSIGN,
 
     // Sub related tokens
     SUBEXP,
@@ -168,7 +170,17 @@ impl Token {
                 "floor" => TokenType::FLOOR,
                 "ceil" => TokenType::CEIL,
                 "round" => TokenType::ROUND,
-                _ => TokenType::ILLEGAL,
+                "=" => TokenType::ASSIGN,
+                _ => {
+                    // Check if it's a valid identifier (starts with letter, contains only alphanumeric)
+                    let trimmed = literal.trim();
+                    if !trimmed.is_empty() && trimmed.chars().next().unwrap().is_alphabetic()
+                        && trimmed.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                        TokenType::IDENTIFIER
+                    } else {
+                        TokenType::ILLEGAL
+                    }
+                }
             }
         };
 
@@ -258,6 +270,14 @@ impl Token {
 
     pub fn is_factorial(&self) -> bool {
         matches!(self.typ, TokenType::FACTORIAL)
+    }
+
+    pub fn is_identifier(&self) -> bool {
+        matches!(self.typ, TokenType::IDENTIFIER)
+    }
+
+    pub fn is_assign(&self) -> bool {
+        matches!(self.typ, TokenType::ASSIGN)
     }
 
     pub fn is_function(&self) -> bool {
