@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.0
+
+Added variable support for the REPL.
+
+- Variables can be assigned: `x = 5`
+- Variables can be used in expressions: `x + 10`, `x * y - 5`
+- Variables persist across REPL expressions
+- Variable names support letters, numbers, and underscores: `x1`, `my_var`, `radius`
+- New REPL commands: `vars` (show variables), `reset` (clear variables)
+- Variables work with all operations: `sqrt(x)`, `x!`, `[x - 10]`
+
+---
+
 ## v0.2.1
 
 Added factorial operator support.

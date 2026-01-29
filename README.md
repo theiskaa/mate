@@ -33,7 +33,7 @@ cargo add mate-rs
 Or add to your Cargo.toml:
 
 ```toml
-mate-rs = "0.2.1"
+mate-rs = "0.3.0"
 ```
 
 ## Usage
@@ -114,6 +114,29 @@ let result = Calculator::calculate(tokens, input);
 | `round(x)` | Round to nearest | `round(3.5)` (= 4) |
 
 Functions can be nested: `sqrt(floor(17))`, `sin(cos(0))`, `2 * sqrt(16) + 1`
+
+## Variables
+
+Variables can be assigned and used in expressions (REPL mode only):
+
+```bash
+>>> x = 5
+5
+>>> x + 10
+15
+>>> y = x * 2
+10
+>>> radius = 7
+7
+>>> 3.14159 * radius ^ 2
+153.938
+```
+
+Variable names can contain letters, numbers, and underscores (must start with a letter).
+
+REPL commands for variables:
+- `vars` - Show all defined variables
+- `reset` - Clear all variables
 
 ## How it Works
 
