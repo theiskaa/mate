@@ -46,6 +46,8 @@ impl Monitor for TokenType {
     fn to_string(&self, _n: usize) -> String {
         let data = match self {
             TokenType::NUMBER => "NUMBER",
+            TokenType::IDENTIFIER => "IDENTIFIER",
+            TokenType::ASSIGN => "ASSIGN",
             TokenType::ILLEGAL => "ILLEGAL",
             TokenType::SUBEXP => "SUB-EXPRESSION",
             TokenType::LPAREN => "LEFT-PARENTHESES",

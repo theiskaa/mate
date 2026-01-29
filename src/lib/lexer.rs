@@ -365,10 +365,11 @@ impl<'a> Lexer<'a> {
                 Token::from(String::new(), Token::unknown_index())
             };
 
-            let is_auto_solids = current.is_number() && next.is_number()
-                || current.is_sub_exp() && next.is_sub_exp();
-            let is_auto_mixings = current.is_number() && next.is_sub_exp()
-                || current.is_sub_exp() && next.is_number();
+            // Helper to check if a token is a "value" (number, identifier, or sub-expression)
+            let current_is_value = current.is_number() || current.is_sub_exp() || current.is_identifier();
+            let next_is_value = next.is_number() || next.is_sub_exp() || next.is_identifier();
+
+            let is_auto_solids = current_is_value && next_is_value;
 
             // Auto append multiplication ◀╮
             // if there is no sign between │ two "number"(normal number and sub-exp) token.
@@ -376,7 +377,7 @@ impl<'a> Lexer<'a> {
             // ╭─ ▼ ───────╮     ╭── ▼ ─────────╮
             // │ 4(2 + 10) │ ──▶ │ 4 • (2 + 10) │
             // ╰───────────╯     ╰──────────────╯
-            if is_auto_solids || is_auto_mixings {
+            if is_auto_solids {
                 sub_tokens.append(&mut Vec::from([
                     current.clone(),
                     Token::from(String::from("*"), Token::unknown_index()),
@@ -387,8 +388,8 @@ impl<'a> Lexer<'a> {
             // Collect power subs in different array to create a different sub expression with them.
             // By doing that we gonna easily keep operation priority safe.
             let is_power_sub = !power_subs.is_empty()
-                && (current.is_number() || current.is_sub_exp() || current.is_power() || current.is_function());
-            if is_power_sub || next.is_power() && (current.is_number() || current.is_sub_exp() || current.is_function()) {
+                && (current_is_value || current.is_power() || current.is_function());
+            if is_power_sub || next.is_power() && (current_is_value || current.is_function()) {
                 power_subs.push(current.clone());
                 continue;
             }
@@ -405,10 +406,10 @@ impl<'a> Lexer<'a> {
             let current_is_combinable = current.is_div_or_prod() || current.is_percentage();
             let next_is_combinable = next.is_div_or_prod() || next.is_percentage();
             let is_sub = !sub_tokens.is_empty()
-                && (current.is_number() || current.is_sub_exp() || current_is_combinable || current.is_function());
+                && (current_is_value || current_is_combinable || current.is_function());
 
             // Checks matching of new or exiting sub-token.
-            if is_sub || next_is_combinable && (current.is_number() || current.is_sub_exp() || current.is_function()) {
+            if is_sub || next_is_combinable && (current_is_value || current.is_function()) {
                 if !power_subs.is_empty() {
                     sub_tokens.push(Token::new_sub(
                         Lexer::combine_powers(power_subs.clone(), power_subs.len() - 1),
@@ -514,7 +515,17 @@ impl<'a> Lexer<'a> {
     //   ... and so on ...
     //
     fn generate_token(&self) -> Option<Result<Token, Error>> {
+        // Check if we've reached the end of input
+        if self.position.get() >= self.input.len() {
+            return None;
+        }
+
         self.skip_whitespace();
+
+        // After skipping whitespace, check again if we're at the end
+        if self.position.get() >= self.input.len() {
+            return None;
+        }
 
         let ch: String = self.examination_char.get().to_string();
         let position: i32 = self.position.get() as i32;
@@ -635,13 +646,14 @@ impl<'a> Lexer<'a> {
         Some((num, (start as i32, end as i32)))
     }
 
-    // Reads an identifier (function name) from the input.
+    // Reads an identifier (function name or variable name) from the input.
     // Returns the identifier string and its position range.
+    // Identifiers can contain letters, digits, and underscores (but must start with a letter).
     fn read_identifier(&self) -> Option<(String, (i32, i32))> {
         let start: usize = self.position.get();
 
         let mut ch: char = self.examination_char.get();
-        while ch.is_alphabetic() {
+        while ch.is_alphanumeric() || ch == '_' {
             match self.read_char() {
                 Some(v) => ch = v,
                 None => {
@@ -718,8 +730,10 @@ impl<'a> Lexer<'a> {
                     let is_paren: (bool, bool) = v.to_string().is_parentheses();
                     let is_abs: (bool, bool) = v.to_string().is_abs();
                     let is_factorial = v == '!';
+                    // Also check if previous char is alphanumeric (part of identifier/number)
+                    let is_alphanum = v.is_alphanumeric() || v == '_';
 
-                    return !is_paren.1 && !is_abs.1 && !is_factorial && !v.to_string().is_number();
+                    return !is_paren.1 && !is_abs.1 && !is_factorial && !is_alphanum;
                 }
 
                 self.is_free_from_number(step + 1)

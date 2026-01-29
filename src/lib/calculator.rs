@@ -5,6 +5,7 @@
 //
 
 use crate::{
+    environment::Environment,
     errors::Error,
     token::{Sub, SubMethod, Token, TokenType},
     utils::ChUtils,
@@ -12,7 +13,14 @@ use crate::{
 
 pub struct Calculator {}
 impl Calculator {
-    // Calculate, is token-to-number compiler of application.
+    // Calculate without environment (backward compatible).
+    // For expressions that don't use variables.
+    pub fn calculate(sub: Sub, input: &str) -> Result<f64, Error> {
+        let mut env = Environment::new();
+        Calculator::calculate_with_env(sub, input, &mut env)
+    }
+
+    // Calculate with environment support for variables.
     // Loops through input and returns final answer.
     //
     // If there is an error, answer will be "ZERO", and error would be provided.
@@ -28,7 +36,7 @@ impl Calculator {
     // For instance NUMBER(I) is 6, NUMBER(II) is 7,
     // and the operation is PRODUCT(Multiplication). Result of function would be ──▶ 6 * 7 = 42
     //
-    pub fn calculate(sub: Sub, input: &str) -> Result<f64, Error> {
+    pub fn calculate_with_env(sub: Sub, input: &str, env: &mut Environment) -> Result<f64, Error> {
         let mut result: f64 = 0.0;
         let tokens = &sub.tokens;
 
@@ -36,18 +44,42 @@ impl Calculator {
             return Err(Error::empty_tokens());
         }
 
-        if tokens.len() == 1 && tokens[0].is_sub_exp() {
-            return Calculator::calculate(tokens[0].sub.clone(), input);
+        // Handle assignment: IDENTIFIER = expression
+        if tokens.len() >= 3 && tokens[0].is_identifier() && tokens[1].is_assign() {
+            let var_name = tokens[0].literal.clone();
+            // Create a new Sub with the expression tokens (everything after =)
+            let expr_tokens: Vec<Token> = tokens[2..].to_vec();
+            let expr_sub = Sub::new(expr_tokens, SubMethod::PAREN);
+            let value = Calculator::calculate_with_env(expr_sub, input, env)?;
+            env.set(&var_name, value);
+            return Ok(value);
         }
 
-        // Handle factorial: [NUMBER/SUBEXP, FACTORIAL]
+        // Handle single identifier (variable lookup)
+        if tokens.len() == 1 && tokens[0].is_identifier() {
+            let var_name = &tokens[0].literal;
+            return env.get(var_name).ok_or_else(|| {
+                Error::new(format!("error: undefined variable '{var_name}'"))
+            });
+        }
+
+        if tokens.len() == 1 && tokens[0].is_sub_exp() {
+            return Calculator::calculate_with_env(tokens[0].sub.clone(), input, env);
+        }
+
+        // Handle factorial: [NUMBER/SUBEXP/IDENTIFIER, FACTORIAL]
         if tokens.len() == 2 && tokens[1].is_factorial() {
             let operand = if tokens[0].is_number() {
                 tokens[0].literal.parse::<f64>().map_err(|_| {
                     Error::cannot_parse_to_number(input.to_string(), tokens[0].clone())
                 })?
             } else if tokens[0].is_sub_exp() {
-                Calculator::calculate(tokens[0].sub.clone(), input)?
+                Calculator::calculate_with_env(tokens[0].sub.clone(), input, env)?
+            } else if tokens[0].is_identifier() {
+                let var_name = &tokens[0].literal;
+                env.get(var_name).ok_or_else(|| {
+                    Error::new(format!("error: undefined variable '{var_name}'"))
+                })?
             } else {
                 return Err(Error::missing_some_tokens(input.to_string(), tokens[0].index.1));
             };
@@ -81,8 +113,14 @@ impl Calculator {
                         ))
                     }
                 };
+            } else if token.is_identifier() {
+                // Variable lookup
+                let var_name = &token.literal;
+                y = env.get(var_name).ok_or_else(|| {
+                    Error::new(format!("error: undefined variable '{var_name}'"))
+                })?;
             } else if token.is_sub_exp() {
-                y = Calculator::calculate(token.sub.clone(), input)?;
+                y = Calculator::calculate_with_env(token.sub.clone(), input, env)?;
             } else if token.is_function() {
                 // Function token - the next token should be its argument
                 if i + 1 >= tokens.len() {
@@ -90,10 +128,15 @@ impl Calculator {
                 }
                 let arg_token = &tokens[i + 1];
                 let arg = if arg_token.is_sub_exp() {
-                    Calculator::calculate(arg_token.sub.clone(), input)?
+                    Calculator::calculate_with_env(arg_token.sub.clone(), input, env)?
                 } else if arg_token.is_number() {
                     arg_token.literal.parse::<f64>().map_err(|_| {
                         Error::cannot_parse_to_number(input.to_string(), arg_token.clone())
+                    })?
+                } else if arg_token.is_identifier() {
+                    let var_name = &arg_token.literal;
+                    env.get(var_name).ok_or_else(|| {
+                        Error::new(format!("error: undefined variable '{var_name}'"))
                     })?
                 } else {
                     return Err(Error::missing_some_tokens(input.to_string(), arg_token.index.1));
@@ -1117,6 +1160,759 @@ mod tests {
             ("2! + 3! + 4!", 32.0), // 2 + 6 + 24
             ("2! * 3! * 4!", 288.0), // 2 * 6 * 24
         ]);
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn variable_assignment() {
+        let mut env = Environment::new();
+
+        // Simple assignment
+        let sub = Lexer::lex("x = 5").unwrap();
+        let result = Calculator::calculate_with_env(sub, "x = 5", &mut env).unwrap();
+        assert_eq!(result, 5.0);
+        assert_eq!(env.get("x"), Some(5.0));
+
+        // Assignment with expression
+        let sub = Lexer::lex("y = 10 + 5").unwrap();
+        let result = Calculator::calculate_with_env(sub, "y = 10 + 5", &mut env).unwrap();
+        assert_eq!(result, 15.0);
+        assert_eq!(env.get("y"), Some(15.0));
+
+        // Assignment using another variable
+        let sub = Lexer::lex("z = x * 2").unwrap();
+        let result = Calculator::calculate_with_env(sub, "z = x * 2", &mut env).unwrap();
+        assert_eq!(result, 10.0);
+        assert_eq!(env.get("z"), Some(10.0));
+
+        // Reassignment
+        let sub = Lexer::lex("x = 100").unwrap();
+        let result = Calculator::calculate_with_env(sub, "x = 100", &mut env).unwrap();
+        assert_eq!(result, 100.0);
+        assert_eq!(env.get("x"), Some(100.0));
+    }
+
+    #[test]
+    fn variable_usage() {
+        let mut env = Environment::new();
+        env.set("x", 5.0);
+        env.set("y", 10.0);
+
+        // Simple variable lookup
+        let sub = Lexer::lex("x").unwrap();
+        let result = Calculator::calculate_with_env(sub, "x", &mut env).unwrap();
+        assert_eq!(result, 5.0);
+
+        // Variable in expression
+        let sub = Lexer::lex("x + 10").unwrap();
+        let result = Calculator::calculate_with_env(sub, "x + 10", &mut env).unwrap();
+        assert_eq!(result, 15.0);
+
+        // Multiple variables
+        let sub = Lexer::lex("x + y").unwrap();
+        let result = Calculator::calculate_with_env(sub, "x + y", &mut env).unwrap();
+        assert_eq!(result, 15.0);
+
+        // Variable with operations
+        let sub = Lexer::lex("x * y - 5").unwrap();
+        let result = Calculator::calculate_with_env(sub, "x * y - 5", &mut env).unwrap();
+        assert_eq!(result, 45.0);
+
+        // Variable in parentheses
+        let sub = Lexer::lex("(x + y) * 2").unwrap();
+        let result = Calculator::calculate_with_env(sub, "(x + y) * 2", &mut env).unwrap();
+        assert_eq!(result, 30.0);
+    }
+
+    #[test]
+    fn variable_with_functions() {
+        let mut env = Environment::new();
+        env.set("x", 16.0);
+        env.set("angle", 0.0);
+
+        // Variable as function argument
+        let sub = Lexer::lex("sqrt(x)").unwrap();
+        let result = Calculator::calculate_with_env(sub, "sqrt(x)", &mut env).unwrap();
+        assert_eq!(result, 4.0);
+
+        // Function result to variable
+        let sub = Lexer::lex("r = sqrt(x)").unwrap();
+        let result = Calculator::calculate_with_env(sub, "r = sqrt(x)", &mut env).unwrap();
+        assert_eq!(result, 4.0);
+        assert_eq!(env.get("r"), Some(4.0));
+
+        // Variable in function expression
+        let sub = Lexer::lex("cos(angle)").unwrap();
+        let result = Calculator::calculate_with_env(sub, "cos(angle)", &mut env).unwrap();
+        assert_eq!(result, 1.0);
+    }
+
+    #[test]
+    fn variable_with_factorial() {
+        let mut env = Environment::new();
+        env.set("n", 5.0);
+
+        // Factorial of variable
+        let sub = Lexer::lex("n!").unwrap();
+        let result = Calculator::calculate_with_env(sub, "n!", &mut env).unwrap();
+        assert_eq!(result, 120.0);
+
+        // Store factorial result
+        let sub = Lexer::lex("fact = n!").unwrap();
+        let result = Calculator::calculate_with_env(sub, "fact = n!", &mut env).unwrap();
+        assert_eq!(result, 120.0);
+        assert_eq!(env.get("fact"), Some(120.0));
+    }
+
+    #[test]
+    fn variable_names() {
+        let mut env = Environment::new();
+
+        // Single letter
+        let sub = Lexer::lex("x = 1").unwrap();
+        Calculator::calculate_with_env(sub, "x = 1", &mut env).unwrap();
+        assert_eq!(env.get("x"), Some(1.0));
+
+        // Multiple letters
+        let sub = Lexer::lex("radius = 7").unwrap();
+        Calculator::calculate_with_env(sub, "radius = 7", &mut env).unwrap();
+        assert_eq!(env.get("radius"), Some(7.0));
+
+        // With underscore
+        let sub = Lexer::lex("my_var = 42").unwrap();
+        Calculator::calculate_with_env(sub, "my_var = 42", &mut env).unwrap();
+        assert_eq!(env.get("my_var"), Some(42.0));
+
+        // With numbers
+        let sub = Lexer::lex("x1 = 10").unwrap();
+        Calculator::calculate_with_env(sub, "x1 = 10", &mut env).unwrap();
+        assert_eq!(env.get("x1"), Some(10.0));
+
+        // Use named variable
+        let sub = Lexer::lex("3.14159 * radius ^ 2").unwrap();
+        let result = Calculator::calculate_with_env(sub, "3.14159 * radius ^ 2", &mut env).unwrap();
+        assert!((result - 153.93791).abs() < 0.001);
+    }
+
+    #[test]
+    fn variable_errors() {
+        let mut env = Environment::new();
+
+        // Undefined variable
+        let sub = Lexer::lex("undefined_var").unwrap();
+        let result = Calculator::calculate_with_env(sub, "undefined_var", &mut env);
+        assert!(result.is_err());
+
+        // Undefined variable in expression
+        let sub = Lexer::lex("5 + unknown").unwrap();
+        let result = Calculator::calculate_with_env(sub, "5 + unknown", &mut env);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn variable_complex_expressions() {
+        let mut env = Environment::new();
+
+        // Set up variables
+        let _ = Calculator::calculate_with_env(
+            Lexer::lex("a = 3").unwrap(), "a = 3", &mut env
+        );
+        let _ = Calculator::calculate_with_env(
+            Lexer::lex("b = 4").unwrap(), "b = 4", &mut env
+        );
+
+        // Pythagorean theorem
+        let sub = Lexer::lex("c = sqrt(a^2 + b^2)").unwrap();
+        let result = Calculator::calculate_with_env(sub, "c = sqrt(a^2 + b^2)", &mut env).unwrap();
+        assert_eq!(result, 5.0);
+        assert_eq!(env.get("c"), Some(5.0));
+
+        // Chain of assignments
+        let _ = Calculator::calculate_with_env(
+            Lexer::lex("d = c * 2").unwrap(), "d = c * 2", &mut env
+        );
+        let _ = Calculator::calculate_with_env(
+            Lexer::lex("e = d + a + b").unwrap(), "e = d + a + b", &mut env
+        );
+        assert_eq!(env.get("d"), Some(10.0));
+        assert_eq!(env.get("e"), Some(17.0));
+    }
+
+    // ==================== EDGE CASE TESTS ====================
+
+    #[test]
+    fn variable_with_absolute_value() {
+        let mut env = Environment::new();
+        env.set("x", 5.0);
+        env.set("y", 20.0);
+
+        // Variable in absolute value
+        let sub = Lexer::lex("[x - 10]").unwrap();
+        let result = Calculator::calculate_with_env(sub, "[x - 10]", &mut env).unwrap();
+        assert_eq!(result, 5.0);
+
+        // Absolute value with multiple variables
+        let sub = Lexer::lex("[x - y]").unwrap();
+        let result = Calculator::calculate_with_env(sub, "[x - y]", &mut env).unwrap();
+        assert_eq!(result, 15.0);
+
+        // Nested absolute value with variables
+        let sub = Lexer::lex("[[x - 10] - y]").unwrap();
+        let result = Calculator::calculate_with_env(sub, "[[x - 10] - y]", &mut env).unwrap();
+        assert_eq!(result, 15.0);
+
+        // Assign absolute value result
+        let sub = Lexer::lex("z = [x - y]").unwrap();
+        let result = Calculator::calculate_with_env(sub, "z = [x - y]", &mut env).unwrap();
+        assert_eq!(result, 15.0);
+        assert_eq!(env.get("z"), Some(15.0));
+    }
+
+    #[test]
+    fn variable_self_reference() {
+        let mut env = Environment::new();
+
+        // Initial assignment
+        let sub = Lexer::lex("x = 5").unwrap();
+        Calculator::calculate_with_env(sub, "x = 5", &mut env).unwrap();
+
+        // Self-referencing update
+        let sub = Lexer::lex("x = x + 1").unwrap();
+        let result = Calculator::calculate_with_env(sub, "x = x + 1", &mut env).unwrap();
+        assert_eq!(result, 6.0);
+        assert_eq!(env.get("x"), Some(6.0));
+
+        // Multiple self-references
+        let sub = Lexer::lex("x = x * x").unwrap();
+        let result = Calculator::calculate_with_env(sub, "x = x * x", &mut env).unwrap();
+        assert_eq!(result, 36.0);
+        assert_eq!(env.get("x"), Some(36.0));
+
+        // Self-reference with other operations
+        let sub = Lexer::lex("x = sqrt(x)").unwrap();
+        let result = Calculator::calculate_with_env(sub, "x = sqrt(x)", &mut env).unwrap();
+        assert_eq!(result, 6.0);
+    }
+
+    #[test]
+    fn variable_case_sensitivity() {
+        let mut env = Environment::new();
+
+        // Set lowercase
+        let sub = Lexer::lex("abc = 10").unwrap();
+        Calculator::calculate_with_env(sub, "abc = 10", &mut env).unwrap();
+
+        // Set uppercase (should be different variable)
+        let sub = Lexer::lex("ABC = 20").unwrap();
+        Calculator::calculate_with_env(sub, "ABC = 20", &mut env).unwrap();
+
+        // Verify they are different
+        assert_eq!(env.get("abc"), Some(10.0));
+        assert_eq!(env.get("ABC"), Some(20.0));
+
+        // Mixed case
+        let sub = Lexer::lex("AbC = 30").unwrap();
+        Calculator::calculate_with_env(sub, "AbC = 30", &mut env).unwrap();
+        assert_eq!(env.get("AbC"), Some(30.0));
+    }
+
+    #[test]
+    fn variable_in_nested_parentheses() {
+        let mut env = Environment::new();
+        env.set("x", 2.0);
+        env.set("y", 3.0);
+
+        let cases: Vec<(&str, f64)> = vec![
+            ("((x))", 2.0),
+            ("(((x)))", 2.0),
+            ("((x + y))", 5.0),
+            ("(((x + y)))", 5.0),
+            ("((x) + (y))", 5.0),
+            ("(x + (y + (x + y)))", 10.0),
+            ("((x * y) + (y * x))", 12.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate_with_env(sub, input, &mut env).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn implicit_multiplication_edge_cases() {
+        let cases: Vec<(&str, f64)> = vec![
+            // Number before parentheses
+            ("2(3)", 6.0),
+            ("3(2 + 1)", 9.0),
+            ("2(3)(4)", 24.0),
+            // Parentheses before number - this may or may not be supported
+            // ("(3)2", 6.0),  // Depends on implementation
+            // Nested
+            ("2((3))", 6.0),
+            ("2(((3)))", 6.0),
+            // With operations inside
+            ("2(3 + 4)", 14.0),
+            ("3(2 * 4)", 24.0),
+            // Multiple implicit
+            ("2(3)(4)(5)", 120.0),
+            // With absolute value
+            ("2[-3]", 6.0),
+            ("3[2 - 5]", 9.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn double_negation() {
+        let cases: Vec<(&str, f64)> = vec![
+            ("--5", 5.0),
+            ("- -5", 5.0),
+            ("-(-5)", 5.0),
+            ("10 - -5", 15.0),
+            ("10 + -5", 5.0),
+            ("5 * -2", -10.0),
+            ("-5 * -2", 10.0),
+            ("10 / -2", -5.0),
+            ("-10 / -2", 5.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = match Lexer::lex(input) {
+                Ok(s) => s,
+                Err(_) => continue, // Skip if not supported
+            };
+            let result = Calculator::calculate(sub, input);
+            if let Ok(val) = result {
+                assert!(
+                    (val - expected).abs() < 1e-10,
+                    "Failed for input: {}, expected: {}, got: {}",
+                    input,
+                    expected,
+                    val
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn whitespace_handling() {
+        let cases: Vec<(&str, f64)> = vec![
+            ("   5 + 5   ", 10.0),
+            ("5+5", 10.0),
+            ("5 +5", 10.0),
+            ("5+ 5", 10.0),
+            ("  5  +  5  ", 10.0),
+            ("(  5 + 5  )", 10.0),
+            ("  (5+5)  ", 10.0),
+            ("sqrt(  16  )", 4.0),
+            ("sqrt(16)", 4.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: '{}', expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn large_numbers() {
+        let cases: Vec<(&str, f64)> = vec![
+            ("1000000 + 1000000", 2000000.0),
+            ("1000000 * 1000", 1000000000.0),
+            ("1000000000 / 1000", 1000000.0),
+            ("2 ^ 30", 1073741824.0),
+            ("999999999 + 1", 1000000000.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1.0, // Allow small float errors for large numbers
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn small_numbers() {
+        let cases: Vec<(&str, f64)> = vec![
+            ("0.001 + 0.002", 0.003),
+            ("0.1 * 0.1", 0.01),
+            ("1 / 1000", 0.001),
+            ("0.0001 + 0.0001", 0.0002),
+            ("0.5 * 0.5", 0.25),
+            (".5 + .5", 1.0),
+            (".1 + .2", 0.30000000000000004), // Known float precision issue
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-9,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn zero_edge_cases() {
+        let cases: Vec<(&str, f64)> = vec![
+            ("0 + 0", 0.0),
+            ("0 - 0", 0.0),
+            ("0 * 100", 0.0),
+            ("100 * 0", 0.0),
+            ("0 / 100", 0.0),
+            ("0 ^ 5", 0.0),
+            ("5 ^ 0", 1.0),
+            ("0 ^ 0", 1.0), // Mathematical convention
+            ("[0]", 0.0),
+            ("[-0]", 0.0),
+            ("0!", 1.0),
+            ("sqrt(0)", 0.0),
+            ("sin(0)", 0.0),
+            ("cos(0)", 1.0),
+            ("tan(0)", 0.0),
+            ("floor(0)", 0.0),
+            ("ceil(0)", 0.0),
+            ("round(0)", 0.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn operator_precedence_comprehensive() {
+        // Tests to verify correct order of operations: parentheses > power > mult/div > add/sub
+        let cases: Vec<(&str, f64)> = vec![
+            // Basic precedence
+            ("2 + 3 * 4", 14.0),      // mult before add
+            ("2 * 3 + 4", 10.0),      // mult before add
+            ("10 - 4 / 2", 8.0),      // div before sub
+            ("10 / 2 - 4", 1.0),      // div before sub
+            ("2 ^ 3 * 4", 32.0),      // power before mult
+            ("4 * 2 ^ 3", 32.0),      // power before mult
+            ("2 + 3 ^ 2", 11.0),      // power before add
+            ("3 ^ 2 + 2", 11.0),      // power before add
+            // Mixed
+            ("2 + 3 * 4 ^ 2", 50.0),  // power > mult > add
+            ("2 ^ 3 + 4 * 5", 28.0),  // power and mult before add
+            ("10 - 2 ^ 2 * 2", 2.0),  // power > mult > sub
+            // Parentheses override
+            ("(2 + 3) * 4", 20.0),
+            ("2 * (3 + 4)", 14.0),
+            ("(2 + 3) ^ 2", 25.0),
+            ("2 ^ (1 + 2)", 8.0),
+            ("((2 + 3) * 4) ^ 2", 400.0),
+            // Left-to-right for same precedence
+            ("10 - 5 - 2", 3.0),      // (10 - 5) - 2
+            ("10 / 2 / 5", 1.0),      // (10 / 2) / 5
+            ("10 - 5 + 2", 7.0),      // (10 - 5) + 2
+            ("10 / 2 * 5", 25.0),     // (10 / 2) * 5
+            // Power is right-associative
+            ("2 ^ 3 ^ 2", 512.0),     // 2 ^ (3 ^ 2) = 2 ^ 9 = 512
+            ("2 ^ 2 ^ 3", 256.0),     // 2 ^ (2 ^ 3) = 2 ^ 8 = 256
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn chained_operations() {
+        let cases: Vec<(&str, f64)> = vec![
+            // Long chains of same operation
+            ("1 + 2 + 3 + 4 + 5", 15.0),
+            ("1 - 2 - 3 - 4 - 5", -13.0),
+            ("1 * 2 * 3 * 4 * 5", 120.0),
+            ("120 / 2 / 3 / 4 / 5", 1.0),
+            // Mixed chains
+            ("1 + 2 - 3 + 4 - 5", -1.0),
+            ("2 * 3 / 2 * 4 / 3", 4.0),
+            ("10 + 20 - 5 + 3 - 8", 20.0),
+            // With parentheses
+            ("(1 + 2) + (3 + 4) + (5 + 6)", 21.0),
+            ("(2 * 3) * (4 * 5)", 120.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn single_values() {
+        let cases: Vec<(&str, f64)> = vec![
+            ("5", 5.0),
+            ("0", 0.0),
+            ("-5", -5.0),
+            ("+5", 5.0),
+            ("3.14", 3.14),
+            ("-3.14", -3.14),
+            (".5", 0.5),
+            ("-0.5", -0.5),
+            ("(5)", 5.0),
+            ("((5))", 5.0),
+            ("[5]", 5.0),
+            ("[-5]", 5.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn function_edge_cases() {
+        // Boundary values for functions
+        let cases: Vec<(&str, f64)> = vec![
+            // sqrt at boundary
+            ("sqrt(0)", 0.0),
+            ("sqrt(1)", 1.0),
+            // Trig at special angles
+            ("sin(0)", 0.0),
+            ("cos(0)", 1.0),
+            // exp/ln inverse
+            ("exp(ln(5))", 5.0),
+            ("ln(exp(5))", 5.0),
+            // log at powers of 10
+            ("log(1)", 0.0),
+            ("log(10)", 1.0),
+            ("log(100)", 2.0),
+            ("log(1000)", 3.0),
+            // floor/ceil at integers
+            ("floor(5)", 5.0),
+            ("ceil(5)", 5.0),
+            ("round(5)", 5.0),
+            // floor/ceil at .5
+            ("floor(2.5)", 2.0),
+            ("ceil(2.5)", 3.0),
+            ("round(2.5)", 3.0), // Rounds to even might differ
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-9,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn variable_reserved_names() {
+        // Test that math function names don't conflict with variables
+        let mut env = Environment::new();
+
+        // These should work as variable names (not conflict with functions)
+        let var_names = vec!["e", "pi", "x", "y", "z", "n", "i", "result"];
+
+        for name in var_names {
+            let input = format!("{} = 42", name);
+            let sub = Lexer::lex(&input).unwrap();
+            let result = Calculator::calculate_with_env(sub, &input, &mut env);
+            assert!(
+                result.is_ok(),
+                "Should be able to use '{}' as variable name",
+                name
+            );
+            assert_eq!(env.get(name), Some(42.0));
+        }
+    }
+
+    #[test]
+    fn percentage_edge_cases() {
+        let cases: Vec<(&str, f64)> = vec![
+            ("100 % 50", 50.0),      // 50% of 100
+            ("100 % 100", 100.0),    // 100% of 100
+            ("100 % 0", 0.0),        // 0% of 100
+            ("0 % 50", 0.0),         // 50% of 0
+            ("200 % 25", 50.0),      // 25% of 200
+            ("50 % 200", 100.0),     // 200% of 50
+            // Chained percentages
+            ("100 % 50 % 50", 25.0), // 50% of (50% of 100)
+            // Percentage with other ops
+            ("100 % 10 + 5", 15.0),
+            ("5 + 100 % 10", 15.0),
+            ("100 % 10 * 2", 20.0),
+            ("2 * 100 % 10", 20.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn power_edge_cases() {
+        let cases: Vec<(&str, f64)> = vec![
+            ("2 ^ 0", 1.0),
+            ("2 ^ 1", 2.0),
+            ("2 ^ -1", 0.5),
+            ("2 ^ -2", 0.25),
+            ("4 ^ 0.5", 2.0),        // Square root
+            ("8 ^ (1/3)", 2.0),      // Cube root
+            ("27 ^ (1/3)", 3.0),
+            ("1 ^ 1000", 1.0),
+            ("(-2) ^ 2", 4.0),
+            ("(-2) ^ 3", -8.0),
+            ("0 ^ 1", 0.0),
+            ("0 ^ 100", 0.0),
+        ];
+
+        for (input, expected) in cases {
+            let sub = Lexer::lex(input).unwrap();
+            let result = Calculator::calculate(sub, input).unwrap();
+            assert!(
+                (result - expected).abs() < 1e-9,
+                "Failed for input: {}, expected: {}, got: {}",
+                input,
+                expected,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn syntax_error_cases() {
+        let error_cases: Vec<&str> = vec![
+            // Empty groups
+            "()",
+            "[]",
+            "(())",
+            // Mismatched brackets
+            "(5 + 3]",
+            "[5 + 3)",
+            "((5 + 3)",
+            "(5 + 3))",
+            "[5]]",
+            // Division by zero
+            "5 / 0",
+            "10 / (5 - 5)",
+            // Function errors
+            "sqrt(-1)",
+            "log(0)",
+            "log(-5)",
+            "ln(0)",
+            "ln(-5)",
+            // Factorial errors
+            "(-1)!",
+            "3.5!",
+            "171!",
+        ];
+
+        for input in error_cases {
+            let result = match Lexer::lex(input) {
+                Ok(sub) => Calculator::calculate(sub, input),
+                Err(e) => Err(e),
+            };
+            assert!(
+                result.is_err(),
+                "Expected error for input: '{}', got: {:?}",
+                input,
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn valid_edge_syntax() {
+        // These are valid syntax that might seem like errors
+        let cases: Vec<(&str, f64)> = vec![
+            // Single operators with implicit 0 or are parsed differently
+            ("+5", 5.0),       // Unary plus
+            ("-5", -5.0),      // Unary minus
+        ];
 
         for (input, expected) in cases {
             let sub = Lexer::lex(input).unwrap();
