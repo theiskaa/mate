@@ -1,9 +1,7 @@
 # mate
 
 [![Crates.io](https://img.shields.io/crates/v/mate-rs)](https://crates.io/crates/mate-rs)
-[![License](https://img.shields.io/crates/l/mate-rs)](LICENSE)
 [![Downloads](https://img.shields.io/crates/d/mate-rs)](https://crates.io/crates/mate-rs)
-[![GitHub Stars](https://img.shields.io/github/stars/theiskaa/mate)](https://github.com/theiskaa/mate/stargazers)
 
 A simple and lightweight arithmetic expression interpreter written in Rust. Mate parses string expressions using a lexer that generates a token tree, then calculates results using an X/O/Y algorithm. Supports basic arithmetic, parentheses, absolute values, powers, percentages, and mathematical functions.
 
